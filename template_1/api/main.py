@@ -358,28 +358,60 @@ async def chat(message: ChatMessage):
         # System message with tool instructions
         system_message = {
             "role": "system",
-            "content": """You are a helpful AI assistant that can create and manage data visualizations. You have access to the following tools:
+            "content": """You are a helpful AI assistant that can create and manage data visualizations. You MUST use tools when users ask you to create, generate, or modify data.
 
-1. create_data_card: Create a new data card (table or chart)
-   - Parameters: title (string), type (string: "table" or "chart"), data (object), topic (string, optional)
-   - For tables: data should have {columns: [...], rows: [[...], ...]}
-   - For charts: data should have {chart_type: "line/bar/pie", labels: [...], values: [...]}
-   - Available topics: Sales, Marketing, Finance, Operations, HR, or custom topic
+AVAILABLE TOOLS:
 
-2. modify_json_file: Modify an existing JSON data file
-   - Parameters: data_id (string), updates (object)
+1. create_data_card - Use this when user asks to create/generate data, tables, or charts
+   Parameters:
+   - title: string (name of the data)
+   - type: "table" or "chart"
+   - topic: string (Sales, Marketing, Finance, Operations, HR, or custom)
+   - data: object
+     * For tables: {columns: ["col1", "col2"], rows: [["val1", "val2"], ...]}
+     * For charts: {chart_type: "line"|"bar"|"pie", labels: [...], values: [...]}
 
-When a user asks you to create data or visualizations, use these tools by responding with a JSON object in this format:
-{"tool": "tool_name", "parameters": {...}}
+2. modify_json_file - Use this to modify existing data
+   Parameters:
+   - data_id: string
+   - updates: object
 
-After using a tool, provide a friendly response to the user explaining what you did."""
+IMPORTANT RULES:
+- When user asks to create/generate data, you MUST respond with ONLY the tool call JSON, nothing else
+- Format: {"tool": "create_data_card", "parameters": {...}}
+- Do NOT include conversational text with the tool call
+- After the tool executes, you can explain what you did
+
+EXAMPLES:
+
+User: "Create a sales table for Q1 2024"
+You: {"tool": "create_data_card", "parameters": {"title": "Q1 2024 Sales", "type": "table", "topic": "Sales", "data": {"columns": ["Month", "Revenue", "Units"], "rows": [["January", "$50000", "1200"], ["February", "$55000", "1350"], ["March", "$60000", "1500"]]}}}
+
+User: "Generate a bar chart for monthly expenses"
+You: {"tool": "create_data_card", "parameters": {"title": "Monthly Expenses", "type": "chart", "topic": "Finance", "data": {"chart_type": "bar", "labels": ["Jan", "Feb", "Mar", "Apr"], "values": [2500, 2800, 2600, 3000]}}}
+
+User: "Show me marketing data"
+You: {"tool": "create_data_card", "parameters": {"title": "Marketing Metrics", "type": "table", "topic": "Marketing", "data": {"columns": ["Campaign", "Clicks", "Conversions"], "rows": [["Email", "5000", "250"], ["Social", "8000", "400"], ["PPC", "3000", "180"]]}}}"""
         }
 
         async with httpx.AsyncClient(timeout=60.0) as client:
+            # Add few-shot examples to help AI understand tool format
+            examples = []
+            if not message.context or len(message.context) == 0:
+                examples = [
+                    {"role": "user", "content": "Create a sales table for Q1 2024 with the Sales topic"},
+                    {"role": "assistant", "content": '{"tool": "create_data_card", "parameters": {"title": "Q1 2024 Sales", "type": "table", "topic": "Sales", "data": {"columns": ["Month", "Revenue", "Units"], "rows": [["January", "$50000", "1200"], ["February", "$55000", "1350"], ["March", "$60000", "1500"]]}}}'},
+                    {"role": "user", "content": "Thanks!"},
+                    {"role": "assistant", "content": "You're welcome! I've created the sales table for you."}
+                ]
+
             payload = {
                 "model": OLLAMA_MODEL,
-                "messages": [system_message] + message.context + [{"role": "user", "content": message.message}],
-                "stream": False
+                "messages": [system_message] + examples + message.context + [{"role": "user", "content": message.message}],
+                "stream": False,
+                "options": {
+                    "temperature": 0.1  # Lower temperature for more consistent tool formatting
+                }
             }
 
             response = await client.post(
@@ -393,21 +425,82 @@ After using a tool, provide a friendly response to the user explaining what you 
 
                 # Check if the response contains a tool call
                 tool_result = None
+                user_message = ai_response
+
                 try:
-                    # Try to find JSON tool call in the response
+                    # Try to parse the entire response as JSON first
                     import re
-                    json_match = re.search(r'\{[^{}]*"tool"[^{}]*\}', ai_response)
-                    if json_match:
-                        tool_call = json.loads(json_match.group())
+
+                    # Remove markdown code blocks if present
+                    cleaned_response = re.sub(r'```json\s*', '', ai_response)
+                    cleaned_response = re.sub(r'```\s*', '', cleaned_response)
+                    cleaned_response = cleaned_response.strip()
+
+                    # First, try to parse the entire response as JSON
+                    tool_call = None
+                    try:
+                        tool_call = json.loads(cleaned_response)
+                        if not tool_call.get("tool"):
+                            tool_call = None
+                    except:
+                        pass
+
+                    # If that didn't work, try to extract JSON from the response
+                    if not tool_call:
+                        # Find JSON by counting braces to handle nested objects
+                        start_idx = cleaned_response.find('{')
+                        if start_idx != -1:
+                            brace_count = 0
+                            end_idx = start_idx
+                            for i in range(start_idx, len(cleaned_response)):
+                                if cleaned_response[i] == '{':
+                                    brace_count += 1
+                                elif cleaned_response[i] == '}':
+                                    brace_count -= 1
+                                    if brace_count == 0:
+                                        end_idx = i
+                                        break
+
+                            if end_idx > start_idx:
+                                tool_call_str = cleaned_response[start_idx:end_idx+1]
+                                print(f"Found tool call: {tool_call_str}")
+                                try:
+                                    tool_call = json.loads(tool_call_str)
+                                except Exception as parse_error:
+                                    print(f"Failed to parse extracted JSON: {parse_error}")
+                                    tool_call = None
+
+                    if tool_call and tool_call.get("tool"):
                         if tool_call.get("tool") == "create_data_card":
-                            tool_result = await handle_create_data_card(tool_call["parameters"])
+                            tool_result = await handle_create_data_card(tool_call.get("parameters", {}))
+                            if tool_result and tool_result.get("success"):
+                                params = tool_call.get("parameters", {})
+                                user_message = f"✅ I've created a new {params.get('type', 'data')} card titled '{params.get('title', 'Data')}' for the {params.get('topic', 'General')} topic. You can see it on your dashboard!"
+                            else:
+                                user_message = f"❌ I tried to create the data card but encountered an error: {tool_result.get('error', 'Unknown error')}"
+
                         elif tool_call.get("tool") == "modify_json_file":
-                            tool_result = await handle_modify_json(tool_call["parameters"])
-                except:
-                    pass
+                            tool_result = await handle_modify_json(tool_call.get("parameters", {}))
+                            if tool_result and tool_result.get("success"):
+                                user_message = f"✅ I've updated the data file. The changes should be visible on your dashboard!"
+                            else:
+                                user_message = f"❌ I tried to modify the data but encountered an error: {tool_result.get('error', 'Unknown error')}"
+
+                except Exception as e:
+                    print(f"Error parsing tool call: {e}")
+                    print(f"Response was: {ai_response}")
+
+                    # Fallback: If AI didn't format tool call properly but message contains data creation keywords
+                    # Try to extract data from the response and create it manually
+                    if any(keyword in message.message.lower() for keyword in ['create', 'generate', 'make', 'show']):
+                        if any(word in message.message.lower() for word in ['table', 'data', 'chart', 'sales', 'marketing', 'finance']):
+                            print("Attempting fallback data extraction...")
+                            # For now, just pass through the AI's response
+                            # A more sophisticated implementation could parse the data from the response
+                            pass
 
                 return {
-                    "response": ai_response,
+                    "response": user_message,
                     "model": OLLAMA_MODEL,
                     "timestamp": datetime.now().isoformat(),
                     "tool_result": tool_result
@@ -438,6 +531,8 @@ After using a tool, provide a friendly response to the user explaining what you 
 async def handle_create_data_card(params: dict):
     """Handle the create_data_card tool call"""
     try:
+        print(f"Creating data card with params: {params}")
+
         data_id = 'data_' + str(int(datetime.now().timestamp() * 1000))
 
         card_data = {
@@ -447,17 +542,37 @@ async def handle_create_data_card(params: dict):
             "created": datetime.now().isoformat()
         }
 
+        # Get data from params
+        data = params.get("data", {})
+
         if params.get("type") == "table":
-            card_data["columns"] = params["data"].get("columns", [])
-            card_data["rows"] = params["data"].get("rows", [])
+            card_data["columns"] = data.get("columns", [])
+            card_data["rows"] = data.get("rows", [])
+            print(f"Created table with {len(card_data['columns'])} columns and {len(card_data['rows'])} rows")
+
         elif params.get("type") == "chart":
-            card_data["chart_type"] = params["data"].get("chart_type", "line")
-            card_data["labels"] = params["data"].get("labels", [])
-            card_data["values"] = params["data"].get("values", [])
-            card_data["image"] = generate_chart_from_data(card_data)
+            card_data["chart_type"] = data.get("chart_type", "line")
+            card_data["labels"] = data.get("labels", [])
+            card_data["values"] = data.get("values", [])
+            print(f"Creating chart with {len(card_data['labels'])} data points")
+
+            # Generate chart image
+            try:
+                card_data["image"] = generate_chart_from_data(card_data)
+                print("Chart image generated successfully")
+            except Exception as chart_error:
+                print(f"Error generating chart: {chart_error}")
+                return {
+                    "success": False,
+                    "error": f"Failed to generate chart: {str(chart_error)}"
+                }
 
         # Save to file
-        save_data_to_file(data_id, card_data)
+        file_path = save_data_to_file(data_id, card_data)
+        print(f"Data saved to: {file_path}")
+
+        # Broadcast to WebSocket subscribers
+        await manager.broadcast(data_id, card_data)
 
         return {
             "success": True,
@@ -465,6 +580,9 @@ async def handle_create_data_card(params: dict):
             "data": card_data
         }
     except Exception as e:
+        print(f"Error in handle_create_data_card: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "success": False,
             "error": str(e)
