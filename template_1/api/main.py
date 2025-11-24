@@ -181,17 +181,27 @@ Generate realistic numerical data that matches the user's request. Include 5-12 
                 result = response.json()
                 ai_response = result["message"]["content"]
 
+                print(f"\n=== generate_data_from_ai - AI Response ===")
+                print(f"Raw AI response: {ai_response[:300]}...")
+                print(f"==================\n")
+
                 # Extract JSON from the response
                 try:
                     # Try to parse the entire response as JSON
                     data = json.loads(ai_response)
-                except json.JSONDecodeError:
+                    print("Successfully parsed AI response as JSON")
+                except json.JSONDecodeError as je:
+                    print(f"Response is not valid JSON, trying to extract... Error: {je}")
                     # Try to find JSON within the response
                     import re
                     json_match = re.search(r'\{.*\}', ai_response, re.DOTALL)
                     if json_match:
-                        data = json.loads(json_match.group())
+                        extracted = json_match.group()
+                        print(f"Extracted JSON (first 200 chars): {extracted[:200]}...")
+                        data = json.loads(extracted)
+                        print("Successfully parsed extracted JSON")
                     else:
+                        print("ERROR: Could not find any JSON in the response")
                         raise ValueError("Could not extract JSON from AI response")
 
                 # Add metadata
@@ -208,7 +218,16 @@ Generate realistic numerical data that matches the user's request. Include 5-12 
                 return generate_fallback_data(prompt, display_type, chart_type)
 
     except Exception as e:
-        print(f"Error generating data from AI: {e}")
+        print(f"\n!!! Error generating data from AI !!!")
+        print(f"Error type: {type(e).__name__}")
+        print(f"Error message: {str(e)}")
+        print(f"Prompt was: {prompt}")
+        print(f"Display type: {display_type}, Chart type: {chart_type}")
+
+        import traceback
+        print("Full traceback:")
+        traceback.print_exc()
+
         return generate_fallback_data(prompt, display_type, chart_type)
 
 def generate_fallback_data(prompt: str, display_type: str, chart_type: str) -> dict:
