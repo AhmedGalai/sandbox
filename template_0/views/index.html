@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Template 0 - Custom Data Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <style>
+        .data-generator {
+            background: white;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+        .data-generator h3 {
+            margin-top: 0;
+            color: #667eea;
+        }
+        .generator-form {
+            display: grid;
+            gap: 15px;
+        }
+        .form-row {
+            display: flex;
+            gap: 10px;
+            align-items: end;
+        }
+        .form-row > div {
+            flex: 1;
+        }
+        .form-row button {
+            flex: 0 0 auto;
+        }
+        .saved-data-list {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .saved-data-item {
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .saved-data-item:hover {
+            background: #e9ecef;
+        }
+        .data-item-info {
+            flex: 1;
+        }
+        .data-item-actions {
+            display: flex;
+            gap: 8px;
+        }
+        .btn-small {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        .chart-image {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="mainContainer" style="display: none;">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-brand">Template 0 Dashboard</div>
+            <div class="navbar-menu">
+                <a href="#" class="navbar-item active" data-page="dashboard">Dashboard</a>
+                <a href="#" class="navbar-item" data-page="settings">Settings</a>
+                <button id="logoutBtn" class="btn btn-logout">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <h3>Data Generator</h3>
+
+                <!-- Data Generation Form -->
+                <div class="data-generator">
+                    <div class="generator-form">
+                        <div class="form-group">
+                            <label for="dataPrompt">Describe the data you want:</label>
+                            <textarea id="dataPrompt" rows="3" placeholder="E.g., Generate monthly sales data for Q1 2024"></textarea>
+                        </div>
+
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="displayType">Display as:</label>
+                                <select id="displayType">
+                                    <option value="table">Table</option>
+                                    <option value="chart">Chart</option>
+                                </select>
+                            </div>
+
+                            <div class="form-group" id="chartTypeGroup" style="display: none;">
+                                <label for="chartType">Chart Type:</label>
+                                <select id="chartType">
+                                    <option value="line">Line</option>
+                                    <option value="bar">Bar</option>
+                                    <option value="pie">Pie</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <button id="generateDataBtn" class="btn btn-primary">Generate Data</button>
+                        <div id="generateStatus" class="success-message"></div>
+                    </div>
+
+                    <!-- Saved Data List -->
+                    <div class="saved-data-list">
+                        <h4>Saved Data:</h4>
+                        <div id="savedDataContainer">
+                            <p style="color: #999;">No saved data yet</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Chat Assistant -->
+                <h3>Chat Assistant</h3>
+                <div class="chatbot-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="chat-message bot-message">
+                            <div class="message-content">Hello! I can help you generate custom data. Just describe what you need above!</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" placeholder="Ask me anything..." />
+                        <button id="sendChatBtn" class="btn btn-send">Send</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Dashboard Page -->
+                <div id="dashboardPage" class="page active">
+                    <div class="page-header">
+                        <h1>Your Custom Data Dashboard</h1>
+                        <p>Generate data using the sidebar, and it will appear here</p>
+                    </div>
+
+                    <div id="cardGrid" class="card-grid">
+                        <div class="card">
+                            <div class="card-header">
+                                <div class="card-title">Welcome</div>
+                                <div class="card-icon">👋</div>
+                            </div>
+                            <div class="card-content">
+                                <h3>Get Started</h3>
+                                <p>Use the Data Generator in the sidebar to create custom tables and charts based on your prompts.</p>
+                                <p><strong>How it works:</strong></p>
+                                <ol>
+                                    <li>Describe the data you want</li>
+                                    <li>Choose display type (table or chart)</li>
+                                    <li>Click "Generate Data"</li>
+                                    <li>Your data will appear as a new card here</li>
+                                </ol>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settingsPage" class="page">
+                    <div class="page-header">
+                        <h1>Settings</h1>
+                    </div>
+                    <form id="settingsForm" class="settings-form">
+                        <div class="form-group">
+                            <label for="displayName">Display Name:</label>
+                            <input type="text" id="displayName" name="displayName" value="Admin User">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email:</label>
+                            <input type="email" id="email" name="email" value="admin@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="theme">Theme:</label>
+                            <select id="theme" name="theme">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notifications">
+                                <input type="checkbox" id="notifications" name="notifications" checked>
+                                Enable Notifications
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="language">Language:</label>
+                            <select id="language" name="language">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="timezone">Timezone:</label>
+                            <select id="timezone" name="timezone">
+                                <option value="UTC">UTC</option>
+                                <option value="EST">EST</option>
+                                <option value="PST">PST</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                        <div id="settingsMessage" class="success-message"></div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
