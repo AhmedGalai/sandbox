@@ -34,8 +34,11 @@ app.add_middleware(
 )
 
 # Ollama configuration
-OLLAMA_BASE_URL = "http://localhost:11434"
-OLLAMA_MODEL = "qwen3:latest"
+OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:latest")
+
+print(f"Ollama configured at: {OLLAMA_BASE_URL}")
+print(f"Using model: {OLLAMA_MODEL}")
 
 # Data storage configuration
 DATA_DIR = Path(__file__).parent.parent / "data"
@@ -422,6 +425,9 @@ You: {"tool": "create_data_card", "parameters": {"title": "Marketing Metrics", "
             if response.status_code == 200:
                 result = response.json()
                 ai_response = result["message"]["content"]
+                print(f"\n=== AI Response ===")
+                print(f"Raw response: {ai_response[:500]}...")  # First 500 chars
+                print(f"==================\n")
 
                 # Check if the response contains a tool call
                 tool_result = None
@@ -441,12 +447,17 @@ You: {"tool": "create_data_card", "parameters": {"title": "Marketing Metrics", "
                     try:
                         tool_call = json.loads(cleaned_response)
                         if not tool_call.get("tool"):
+                            print("Response is JSON but doesn't have 'tool' field")
                             tool_call = None
-                    except:
+                        else:
+                            print(f"Successfully parsed tool call: {tool_call.get('tool')}")
+                    except json.JSONDecodeError as je:
+                        print(f"Response is not valid JSON: {je}")
                         pass
 
                     # If that didn't work, try to extract JSON from the response
                     if not tool_call:
+                        print("Attempting to extract JSON from response...")
                         # Find JSON by counting braces to handle nested objects
                         start_idx = cleaned_response.find('{')
                         if start_idx != -1:
@@ -463,41 +474,63 @@ You: {"tool": "create_data_card", "parameters": {"title": "Marketing Metrics", "
 
                             if end_idx > start_idx:
                                 tool_call_str = cleaned_response[start_idx:end_idx+1]
-                                print(f"Found tool call: {tool_call_str}")
+                                print(f"Extracted JSON: {tool_call_str[:200]}...")
                                 try:
                                     tool_call = json.loads(tool_call_str)
+                                    if tool_call.get("tool"):
+                                        print(f"Successfully extracted tool call: {tool_call.get('tool')}")
+                                    else:
+                                        print("Extracted JSON but no 'tool' field found")
+                                        tool_call = None
                                 except Exception as parse_error:
                                     print(f"Failed to parse extracted JSON: {parse_error}")
                                     tool_call = None
+                        else:
+                            print("No JSON found in response")
 
                     if tool_call and tool_call.get("tool"):
+                        print(f"\n=== Executing Tool: {tool_call.get('tool')} ===")
+
                         if tool_call.get("tool") == "create_data_card":
+                            print(f"Parameters: {tool_call.get('parameters', {})}")
                             tool_result = await handle_create_data_card(tool_call.get("parameters", {}))
+                            print(f"Tool result: {tool_result}")
+
                             if tool_result and tool_result.get("success"):
                                 params = tool_call.get("parameters", {})
                                 user_message = f"✅ I've created a new {params.get('type', 'data')} card titled '{params.get('title', 'Data')}' for the {params.get('topic', 'General')} topic. You can see it on your dashboard!"
                             else:
-                                user_message = f"❌ I tried to create the data card but encountered an error: {tool_result.get('error', 'Unknown error')}"
+                                error_detail = tool_result.get('error', 'Unknown error') if tool_result else 'Tool returned None'
+                                user_message = f"❌ I tried to create the data card but encountered an error: {error_detail}"
+                                print(f"ERROR: {error_detail}")
 
                         elif tool_call.get("tool") == "modify_json_file":
+                            print(f"Parameters: {tool_call.get('parameters', {})}")
                             tool_result = await handle_modify_json(tool_call.get("parameters", {}))
+                            print(f"Tool result: {tool_result}")
+
                             if tool_result and tool_result.get("success"):
                                 user_message = f"✅ I've updated the data file. The changes should be visible on your dashboard!"
                             else:
-                                user_message = f"❌ I tried to modify the data but encountered an error: {tool_result.get('error', 'Unknown error')}"
+                                error_detail = tool_result.get('error', 'Unknown error') if tool_result else 'Tool returned None'
+                                user_message = f"❌ I tried to modify the data but encountered an error: {error_detail}"
+                                print(f"ERROR: {error_detail}")
+                    else:
+                        print("No valid tool call detected - passing through AI response")
+                        # AI responded but didn't use a tool - just pass through the response
+                        user_message = ai_response
 
                 except Exception as e:
-                    print(f"Error parsing tool call: {e}")
-                    print(f"Response was: {ai_response}")
+                    error_msg = str(e)
+                    print(f"\n!!! EXCEPTION in tool parsing !!!")
+                    print(f"Error: {error_msg}")
+                    print(f"Full response: {ai_response}")
 
-                    # Fallback: If AI didn't format tool call properly but message contains data creation keywords
-                    # Try to extract data from the response and create it manually
-                    if any(keyword in message.message.lower() for keyword in ['create', 'generate', 'make', 'show']):
-                        if any(word in message.message.lower() for word in ['table', 'data', 'chart', 'sales', 'marketing', 'finance']):
-                            print("Attempting fallback data extraction...")
-                            # For now, just pass through the AI's response
-                            # A more sophisticated implementation could parse the data from the response
-                            pass
+                    import traceback
+                    traceback.print_exc()
+
+                    # Show the actual error to help debug
+                    user_message = f"I received your request but encountered an error: {error_msg}. Please check the server logs for details."
 
                 return {
                     "response": user_message,
