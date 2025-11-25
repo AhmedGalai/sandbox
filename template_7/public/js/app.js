@@ -1867,6 +1867,11 @@ async function sendChatMessageEnhanced() {
         // Remove typing indicator
         typingIndicator.remove();
 
+        // Update Systems tab with intent
+        if (data.intent) {
+            updateTaskPlan(`Intent: ${data.intent} (confidence: ${(data.confidence * 100).toFixed(0)}%)\nQuery: "${message}"`);
+        }
+
         // Add bot response
         if (data.response) {
             addChatMessage(data.response, 'bot');
@@ -1876,8 +1881,11 @@ async function sendChatMessageEnhanced() {
             addChatMessage('Failed to process request.', 'bot');
         }
 
-        // If it's a movement/action command, handle confirmation and execution
-        if (data.success && (data.target_point || data.action || data.multi_step)) {
+        // Check if this is a query intent (don't execute, just inform)
+        const isQueryIntent = data.intent && data.intent.startsWith('query_');
+
+        // If it's a movement/action command (and NOT a query), handle confirmation and execution
+        if (data.success && !isQueryIntent && (data.target_point || data.action || data.multi_step)) {
             const executeTask = async () => {
                 if (data.multi_step && data.steps) {
                     // Execute multi-step task on all selected robots

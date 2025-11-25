@@ -867,10 +867,14 @@ async def get_robot_status():
 
 @app.post("/api/robot/task")
 async def send_robot_task(task: RobotTask):
-    """Send task to robot via chatbot with AI assistance"""
+    """Send task to robot via chatbot with AI assistance - with intent classification"""
     try:
         print(f"Robot task received: {task.task}")
         print(f"Context data available: {bool(task.context_data)}")
+
+        # Step 1: Classify intent using embeddings
+        intent_result = await classify_intent(task.task)
+        print(f"Intent classified: {intent_result['intent']} (confidence: {intent_result['confidence']:.2f})")
 
         # Calculate nearest point
         nearest = calculate_nearest_label()
@@ -893,30 +897,36 @@ async def send_robot_task(task: RobotTask):
         if task.context_data.get("docs"):
             docs_info_str = f"\n\nRelevant Documentation:\n{task.context_data['docs']}"
 
-        # Enhanced system prompt based on query type
-        if task.is_query and task.context_data.get("robots"):
-            system_message = f"""You are a robot fleet assistant. Answer questions about robot status, map, and documentation.
+        # Enhanced system prompt based on classified intent
+        is_query_intent = intent_result['intent'].startswith('query_')
+
+        if is_query_intent:
+            # For queries - focus on providing information
+            system_message = f"""You are a helpful robot fleet information assistant. Provide clear, factual answers.
 
 Current Fleet Status:
-{robot_status_str}
+{robot_status_str if robot_status_str else f"Robot: ({robot_pose['x']},{robot_pose['y']}) heading {robot_pose['heading']}°, status {robot_pose.get('status', 'Ready')}"}
 
 Map Information:
-{map_info_str}
-Points: A(18,3), B(7,12), C(16,16), CHARGE(2,18), STANDBY(1,1)
+{map_info_str if map_info_str else f"Grid: 20x20, Points: A(18,3), B(7,12), C(16,16), CHARGE(2,18), STANDBY(1,1)"}
 {docs_info_str}
 
-Be clear and concise. Answer in 1-2 sentences."""
+User Intent: {intent_result['intent']}
+
+Provide a clear, helpful answer. Do NOT suggest executing tasks. Just answer the question.
+Keep response under 50 words."""
         else:
-            # Standard task execution prompt
-            system_message = f"""Robot task assistant. Parse commands and respond briefly.
+            # For tasks - focus on execution planning
+            system_message = f"""You are a robot task execution assistant. Confirm tasks clearly.
 
 Fleet Status:
 {robot_status_str if robot_status_str else f"Robot: ({robot_pose['x']},{robot_pose['y']}) heading {robot_pose['heading']}°"}
 
 Points: A(18,3), B(7,12), C(16,16), CHARGE(2,18), STANDBY(1,1)
 
-For multi-step tasks like "go to A, then B, then charge", respond with step-by-step confirmation.
-Keep responses under 30 words."""
+User Intent: {intent_result['intent']}
+
+For multi-step tasks, acknowledge each step. Be concise (under 30 words)."""
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             payload = {
@@ -975,14 +985,18 @@ Keep responses under 30 words."""
                     "success": True,
                     "response": ai_response,
                     "pose": robot_pose,
+                    "intent": intent_result['intent'],
+                    "confidence": intent_result['confidence'],
                     "timestamp": datetime.now().isoformat()
                 }
 
-                if multi_step and steps:
-                    response_data["multi_step"] = True
-                    response_data["steps"] = steps
-                elif target_point:
-                    response_data["target_point"] = target_point
+                # Only add task execution data if it's NOT a query intent
+                if not is_query_intent:
+                    if multi_step and steps:
+                        response_data["multi_step"] = True
+                        response_data["steps"] = steps
+                    elif target_point:
+                        response_data["target_point"] = target_point
 
                 return response_data
             else:
