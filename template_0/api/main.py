@@ -35,7 +35,7 @@ app.add_middleware(
 
 # Ollama configuration
 OLLAMA_BASE_URL = "http://localhost:11434"
-OLLAMA_MODEL = "qwen2.5:latest"
+OLLAMA_MODEL = "qwen3:latest"
 
 # Data storage configuration
 DATA_DIR = Path(__file__).parent.parent / "data"
