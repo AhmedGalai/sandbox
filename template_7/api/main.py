@@ -1,7 +1,7 @@
-"""
-FastAPI Dashboard Data Publisher - Template 0
-Generates data from user prompts, saves to local files, and streams to Node.js server
-"""
+# """
+# FastAPI Dashboard Data Publisher - Template 0
+# Generates data from user prompts, saves to local files, and streams to Node.js server
+# """
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -796,7 +796,7 @@ async def classify_intent(user_query: str) -> Dict[str, Any]:
             return {"intent": "query_status", "confidence": 0.7}
         elif any(kw in query_lower for kw in ["map", "obstacle", "grid"]):
             return {"intent": "query_map", "confidence": 0.7}
-        elif any(kw in query_lower for kw in ["how", "what", "explain", "doc", "guide"]):
+        elif any(kw in query_lower for kw in ["how", "what", "explain", "doc", "guide", "info", "information"]):
             return {"intent": "query_docs", "confidence": 0.7}
         elif any(kw in query_lower for kw in ["then", "and", "check", "after"]):
             return {"intent": "task_complex", "confidence": 0.6}
@@ -820,6 +820,8 @@ async def classify_intent(user_query: str) -> Dict[str, Any]:
             if avg_score > best_score:
                 best_score = avg_score
                 best_intent = intent
+
+    print({"intent": best_intent, "confidence": best_score})
 
     return {"intent": best_intent, "confidence": best_score}
 
@@ -876,7 +878,9 @@ async def send_robot_task(task: RobotTask):
         intent_result = await classify_intent(task.task)
         print(f"Intent classified: {intent_result['intent']} (confidence: {intent_result['confidence']:.2f})")
 
-        # Calculate nearest point
+        is_query_intent = intent_result["intent"].startswith("query_")
+
+        # Calculate nearest point for info
         nearest = calculate_nearest_label()
 
         # Build enhanced context from provided data
@@ -885,39 +889,69 @@ async def send_robot_task(task: RobotTask):
             robots_info = []
             for robot_id, robot_data in task.context_data["robots"].items():
                 pos = robot_data.get("position", {})
-                robots_info.append(f"{robot_id}: pos({pos.get('x')},{pos.get('y')}), heading {robot_data.get('heading')}°, status {robot_data.get('status')}, task '{robot_data.get('currentTask')}'")
+                robots_info.append(
+                    f"{robot_id}: pos({pos.get('x')},{pos.get('y')}), "
+                    f"heading {robot_data.get('heading')}°, "
+                    f"status {robot_data.get('status')}, "
+                    f"task '{robot_data.get('currentTask')}'"
+                )
             robot_status_str = "\n".join(robots_info)
 
         map_info_str = ""
         if task.context_data.get("map"):
             map_data = task.context_data["map"]
-            map_info_str = f"Grid: {map_data.get('gridSize')}x{map_data.get('gridSize')}, Obstacles: {map_data.get('obstacles')}, Free cells: {map_data.get('freeCells')}"
+            map_info_str = (
+                f"Grid: {map_data.get('gridSize')}x{map_data.get('gridSize')}, "
+                f"Obstacles: {map_data.get('obstacles')}, "
+                f"Free cells: {map_data.get('freeCells')}"
+            )
 
         docs_info_str = ""
         if task.context_data.get("docs"):
             docs_info_str = f"\n\nRelevant Documentation:\n{task.context_data['docs']}"
 
-        # Enhanced system prompt based on classified intent
-        is_query_intent = intent_result['intent'].startswith('query_')
-
+        # ==== QUERY MODE – NO TASK EXECUTION ====
         if is_query_intent:
-            # For queries - focus on providing information
-            system_message = f"""You are a helpful robot fleet information assistant. Provide clear, factual answers.
+            task_lower = task.task.lower()
 
-Current Fleet Status:
-{robot_status_str if robot_status_str else f"Robot: ({robot_pose['x']},{robot_pose['y']}) heading {robot_pose['heading']}°, status {robot_pose.get('status', 'Ready')}"}
+            if intent_result["intent"] == "query_status":
+                resp = (
+                    f"Robot is at ({robot_pose['x']},{robot_pose['y']}), "
+                    f"heading {robot_pose['heading']}°, "
+                    f"status {robot_pose.get('status','Ready')}, "
+                    f"current task {robot_pose.get('current_task','Idle')}, "
+                    f"nearest point {nearest}."
+                )
+            elif intent_result["intent"] == "query_map":
+                if map_info_str:
+                    resp = f"Map info: {map_info_str}"
+                else:
+                    resp = (
+                        "Grid: 20x20, points A(18,3), B(7,12), C(16,16), "
+                        "CHARGE(2,18), STANDBY(1,1)."
+                    )
+            else:  # query_docs or generic info
+                if docs_info_str:
+                    resp = f"Documentation available. {docs_info_str}"
+                else:
+                    resp = (
+                        "You can ask for robot status, position, map info, "
+                        "or documentation, e.g. 'where is the robot?' or "
+                        "'show me the map status'."
+                    )
 
-Map Information:
-{map_info_str if map_info_str else f"Grid: 20x20, Points: A(18,3), B(7,12), C(16,16), CHARGE(2,18), STANDBY(1,1)"}
-{docs_info_str}
+            return {
+                "success": True,
+                "response": resp,
+                "pose": robot_pose,
+                "intent": intent_result["intent"],
+                "confidence": intent_result["confidence"],
+                "timestamp": datetime.now().isoformat(),
+                "mode": "query",
+            }
 
-User Intent: {intent_result['intent']}
-
-Provide a clear, helpful answer. Do NOT suggest executing tasks. Just answer the question.
-Keep response under 50 words."""
-        else:
-            # For tasks - focus on execution planning
-            system_message = f"""You are a robot task execution assistant. Confirm tasks clearly.
+        # ==== TASK MODE BELOW – ONLY FOR NON-QUERY INTENTS ====
+        system_message = f"""You are a robot task execution assistant. Confirm tasks clearly.
 
 Fleet Status:
 {robot_status_str if robot_status_str else f"Robot: ({robot_pose['x']},{robot_pose['y']}) heading {robot_pose['heading']}°"}
@@ -926,38 +960,46 @@ Points: A(18,3), B(7,12), C(16,16), CHARGE(2,18), STANDBY(1,1)
 
 User Intent: {intent_result['intent']}
 
-For multi-step tasks, acknowledge each step. Be concise (under 30 words)."""
+Rules:
+- The user intent is a TASK, not just an information query.
+- Confirm what you will do in one short sentence (under 30 words).
+- Do NOT ask additional questions.
+"""
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             payload = {
                 "model": OLLAMA_MODEL,
-                "messages": [
-                    {"role": "system", "content": system_message}
-                ] + task.context[-6:] + [  # Only last 3 exchanges
-                    {"role": "user", "content": task.task}
-                ],
+                "messages": (
+                    [{"role": "system", "content": system_message}]
+                    + task.context[-6:]
+                    + [{"role": "user", "content": task.task}]
+                ),
                 "stream": False,
                 "options": {
                     "temperature": 0.2,
-                    "num_predict": 50  # Very short responses
-                }
+                    "num_predict": 50,
+                },
             }
 
             response = await client.post(
                 f"{OLLAMA_BASE_URL}/api/chat",
-                json=payload
+                json=payload,
             )
 
-            target_point = None
+            # ---- Task parsing only in task mode ----
             task_lower = task.task.lower()
+            target_point = None
             multi_step = False
             steps = []
 
-            # Detect multi-step tasks (e.g., "go to A, then B, then charge")
+            # Detect multi-step tasks
             if "then" in task_lower or "," in task_lower:
                 multi_step = True
-                # Parse steps
-                parts = task_lower.replace(" then ", ",").replace(" and ", ",").split(",")
+                parts = (
+                    task_lower.replace(" then ", ",")
+                    .replace(" and ", ",")
+                    .split(",")
+                )
                 for part in parts:
                     part = part.strip()
                     step_target = None
@@ -971,7 +1013,11 @@ For multi-step tasks, acknowledge each step. Be concise (under 30 words)."""
             # Detect single target point
             if not multi_step:
                 for point in ["a", "b", "c", "charge", "standby"]:
-                    if f"to {point}" in task_lower or f"point {point}" in task_lower or (point in ["charge", "standby"] and point in task_lower):
+                    if (
+                        f"to {point}" in task_lower
+                        or f"point {point}" in task_lower
+                        or (point in ["charge", "standby"] and point in task_lower)
+                    ):
                         target_point = point.upper()
                         robot_pose["current_task"] = f"Moving to {target_point}"
                         robot_pose["status"] = "Planning"
@@ -985,18 +1031,17 @@ For multi-step tasks, acknowledge each step. Be concise (under 30 words)."""
                     "success": True,
                     "response": ai_response,
                     "pose": robot_pose,
-                    "intent": intent_result['intent'],
-                    "confidence": intent_result['confidence'],
-                    "timestamp": datetime.now().isoformat()
+                    "intent": intent_result["intent"],
+                    "confidence": intent_result["confidence"],
+                    "timestamp": datetime.now().isoformat(),
+                    "mode": "task",
                 }
 
-                # Only add task execution data if it's NOT a query intent
-                if not is_query_intent:
-                    if multi_step and steps:
-                        response_data["multi_step"] = True
-                        response_data["steps"] = steps
-                    elif target_point:
-                        response_data["target_point"] = target_point
+                if multi_step and steps:
+                    response_data["multi_step"] = True
+                    response_data["steps"] = steps
+                elif target_point:
+                    response_data["target_point"] = target_point
 
                 return response_data
             else:
@@ -1006,17 +1051,14 @@ For multi-step tasks, acknowledge each step. Be concise (under 30 words)."""
                 if target_point:
                     coords = work_points[target_point]
                     response_msg = f"Moving to {target_point} at ({coords['x']},{coords['y']})"
-                elif "where" in task_lower or "position" in task_lower or "pose" in task_lower:
-                    response_msg = f"Position: ({robot_pose['x']},{robot_pose['y']}), Heading: {robot_pose['heading']}°, Nearest: {nearest}"
-                elif "status" in task_lower:
-                    response_msg = f"Status: {robot_pose.get('status', 'Ready')}, Task: {robot_pose.get('current_task', 'Idle')}"
 
                 return {
                     "success": True,
                     "response": response_msg,
                     "pose": robot_pose,
                     "target_point": target_point,
-                    "timestamp": datetime.now().isoformat()
+                    "timestamp": datetime.now().isoformat(),
+                    "mode": "task",
                 }
 
     except Exception as e:
@@ -1053,3 +1095,40 @@ async def websocket_endpoint(websocket: WebSocket, topic: str):
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+
+
+"""
+example conversation with current code : 
+
+Hello! I'm your robot control assistant. You can give me tasks for the robot to execute!
+where is the robot now ?
+Robot is at (5,5), heading 0°, status Ready, current task Idle, nearest point B.
+
+what about other robots ?
+Robot is at (5,5), heading 0°, status Ready, current task Idle, nearest point B.
+
+send to charge
+Task will be executed on selected robots!
+
+where is the 003 Rob
+Robot is at (16,16), heading 270°, status Planning, current task Moving to C, nearest point C.
+
+are there errors ?
+You can ask for robot status, position, map info, or documentation, e.g. 'where is the robot?' or 'show me the map status'.
+
+show map status
+Map info: Grid: 20x20, Obstacles: 44, Free cells: 356
+
+go to A then to the charging station
+Task will be executed on selected robots!
+
+hi, who are you
+You can ask for robot status, position, map info, or documentation, e.g. 'where is the robot?' or 'show me the map status'.
+
+
+
+
+
+"""
