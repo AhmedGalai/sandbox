@@ -703,6 +703,13 @@ robot_pose = {
     "heading": 0
 }
 
+# Work points with coordinates
+work_points = {
+    "A": {"x": 18, "y": 3},
+    "B": {"x": 7, "y": 12},
+    "C": {"x": 16, "y": 16}
+}
+
 class RobotTask(BaseModel):
     task: str
     context: Optional[List[Dict[str, str]]] = []
@@ -719,30 +726,109 @@ async def update_robot_pose(pose: dict):
     robot_pose.update(pose)
     return {"success": True, "pose": robot_pose}
 
+def move_robot_to_point(point_label: str):
+    """Move robot to a work point"""
+    global robot_pose
+    if point_label.upper() in work_points:
+        target = work_points[point_label.upper()]
+        # Calculate heading BEFORE moving
+        dx = target["x"] - robot_pose["x"]
+        dy = target["y"] - robot_pose["y"]
+        import math
+        robot_pose["heading"] = int(math.degrees(math.atan2(-dy, dx))) % 360
+        # Now move to target
+        robot_pose["x"] = target["x"]
+        robot_pose["y"] = target["y"]
+        return True
+    return False
+
 @app.post("/api/robot/task")
 async def send_robot_task(task: RobotTask):
-    """Send task to robot via chatbot"""
+    """Send task to robot via chatbot with AI assistance"""
     try:
-        # Here you would integrate with your actual robot control system
-        # For now, we'll just log the task and return a response
         print(f"Robot task received: {task.task}")
 
-        # Simulate task processing
-        response_message = f"Task received: '{task.task}'. Robot will execute this command."
+        # Simple system prompt - don't overthink
+        system_message = f"""You are a robot control assistant. Keep responses SHORT and direct.
 
-        # You can add actual robot control logic here
-        # For example, parse commands like "move to point A", "rotate 90 degrees", etc.
+Current robot state: x={robot_pose['x']}, y={robot_pose['y']}, heading={robot_pose['heading']}°
+Work points: A at (18,3), B at (7,12), C at (16,16)
 
-        return {
-            "success": True,
-            "response": response_message,
-            "task": task.task,
-            "timestamp": datetime.now().isoformat()
-        }
+When user asks to go somewhere, respond briefly. Example:
+User: "go to A"
+You: "Moving to point A at (18,3)"
+
+When asked about location:
+You: "Robot is at ({robot_pose['x']},{robot_pose['y']}) facing {robot_pose['heading']}°"
+
+Be concise. No overthinking."""
+
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            payload = {
+                "model": OLLAMA_MODEL,
+                "messages": [
+                    {"role": "system", "content": system_message}
+                ] + task.context + [
+                    {"role": "user", "content": task.task}
+                ],
+                "stream": False,
+                "options": {
+                    "temperature": 0.3,
+                    "num_predict": 100  # Limit response length
+                }
+            }
+
+            response = await client.post(
+                f"{OLLAMA_BASE_URL}/api/chat",
+                json=payload
+            )
+
+            if response.status_code == 200:
+                result = response.json()
+                ai_response = result["message"]["content"].strip()
+
+                # Check if task involves moving to a point
+                task_lower = task.task.lower()
+                for point in ["a", "b", "c"]:
+                    if f"to {point}" in task_lower or f"point {point}" in task_lower:
+                        move_robot_to_point(point)
+                        break
+
+                return {
+                    "success": True,
+                    "response": ai_response,
+                    "pose": robot_pose,
+                    "timestamp": datetime.now().isoformat()
+                }
+            else:
+                # Fallback without AI
+                response_msg = f"Task received: {task.task}"
+
+                # Try to execute movement
+                task_lower = task.task.lower()
+                for point in ["a", "b", "c"]:
+                    if f"to {point}" in task_lower or f"point {point}" in task_lower:
+                        if move_robot_to_point(point):
+                            response_msg = f"Moving to point {point.upper()} at ({work_points[point.upper()]['x']},{work_points[point.upper()]['y']})"
+                        break
+
+                if "where" in task_lower or "location" in task_lower or "position" in task_lower:
+                    response_msg = f"Robot is at ({robot_pose['x']},{robot_pose['y']}) facing {robot_pose['heading']}°"
+
+                return {
+                    "success": True,
+                    "response": response_msg,
+                    "pose": robot_pose,
+                    "timestamp": datetime.now().isoformat()
+                }
+
     except Exception as e:
+        print(f"Error in robot task: {e}")
+        import traceback
+        traceback.print_exc()
         return {
             "success": False,
-            "response": f"Error processing task: {str(e)}",
+            "response": f"Error: {str(e)}",
             "error": str(e)
         }
 
