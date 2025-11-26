@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Simulator Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Task Confirmation Modal -->
+    <div id="confirmationModal" class="confirmation-modal">
+        <div class="confirmation-content">
+            <h3>Confirm Task Execution</h3>
+            <p id="confirmationMessage"></p>
+            <div class="confirmation-buttons">
+                <button id="confirmCancel" class="btn" style="background: #6c757d;">Cancel</button>
+                <button id="confirmExecute" class="btn btn-primary">Execute</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="mainContainer" style="display: none;">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <img src="/images/logo.jpg" alt="Logo" style="height: 40px; vertical-align: middle; margin-right: 10px;">
+                Robot Simulator
+            </div>
+            <div class="navbar-menu">
+                <a href="#" class="navbar-item active" data-page="dashboard">Dashboard</a>
+                <a href="#" class="navbar-item" data-page="systems">Systems</a>
+                <a href="#" class="navbar-item" data-page="docs">Docs</a>
+                <a href="#" class="navbar-item" data-page="settings">Settings</a>
+                <button id="themeToggle" class="btn btn-theme">🌙</button>
+                <button id="logoutBtn" class="btn btn-logout">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Chat Assistant -->
+                <h3>Robot Control</h3>
+                <div class="chatbot-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="chat-message bot-message">
+                            <div class="message-content">Hello! I'm your robot control assistant. You can give me tasks for the robot to execute!</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" placeholder="Give robot a task..." />
+                        <button id="sendChatBtn" class="btn btn-send">Send</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Dashboard Page (Simulator) -->
+                <div id="dashboardPage" class="page active">
+                    <div class="page-header">
+                        <h1>Dashboard</h1>
+                        <p>Monitor and control your robots</p>
+                    </div>
+
+                    <!-- Business and Robot Selection -->
+                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px;">
+                        <div class="form-group">
+                            <label for="businessName">Business Name:</label>
+                            <input type="text" id="businessName" value="ACME Robotics Corp" disabled style="width: 100%;">
+                        </div>
+                        <div class="form-group">
+                            <label for="robotSelection">Select Robots:</label>
+                            <select id="robotSelection" multiple size="3" style="width: 100%; padding: 10px;">
+                                <option value="ROB-001" selected>ROB-001 (Active)</option>
+                                <option value="ROB-002">ROB-002 (Idle)</option>
+                                <option value="ROB-003">ROB-003 (Charging)</option>
+                                <option value="ROB-004">ROB-004 (Active)</option>
+                                <option value="ROB-005">ROB-005 (Maintenance)</option>
+                            </select>
+                            <small style="color: #777; display: block; margin-top: 5px;">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+                    </div>
+
+                    <!-- Card Visibility Dropdown -->
+                    <div class="form-group" style="margin-bottom: 20px;">
+                        <label for="cardVisibility">Visible Cards:</label>
+                        <select id="cardVisibility" class="card-visibility-dropdown" multiple size="5">
+                            <option value="mapCard" selected>Map</option>
+                            <option value="robotStatusCard" selected>Robot Status</option>
+                            <option value="mapStatusCard" selected>Map Status</option>
+                            <option value="taskControlCard" selected>Task Control</option>
+                            <option value="taskBuilderCard" selected>Task Builder</option>
+                        </select>
+                        <small style="color: #777; display: block; margin-top: 5px;">Hold Ctrl/Cmd to select multiple</small>
+                    </div>
+
+                    <div id="cardGrid" class="card-grid">
+                        <div class="card" id="mapCard" data-card-name="mapCard" data-topic="map" draggable="true">
+                            <div class="card-header">
+                                <div class="card-title">Map</div>
+                                <div class="card-icon">🗺️</div>
+                            </div>
+                            <div class="card-content">
+                                <canvas id="robotCanvas" width="600" height="600" style="border: 1px solid #ddd; max-width: 100%;"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card" id="robotStatusCard" data-card-name="robotStatusCard" data-topic="rob_status" draggable="true">
+                            <div class="card-header">
+                                <div class="card-title">Robot Status</div>
+                                <div class="card-icon">📊</div>
+                            </div>
+                            <div class="card-content">
+                                <table id="robotStatusTable" style="width: 100%; border-collapse: collapse;">
+                                    <tbody>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Position X</td><td id="status-x" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Position Y</td><td id="status-y" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Heading</td><td id="status-heading" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Current Task</td><td id="status-task" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Status</td><td id="status-status" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Nearest Label</td><td id="status-nearest" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Distance to Target</td><td id="status-distance" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Errors</td><td id="status-errors" style="padding: 8px; border: 1px solid #ddd; color: #dc3545;">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card" id="mapStatusCard" data-card-name="mapStatusCard" data-topic="map_status" draggable="true">
+                            <div class="card-header">
+                                <div class="card-title">Map Status</div>
+                                <div class="card-icon">🗺️</div>
+                            </div>
+                            <div class="card-content">
+                                <table id="mapStatusTable" style="width: 100%; border-collapse: collapse;">
+                                    <tbody>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Grid Size</td><td id="map-gridsize" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Work Points</td><td id="map-workpoints" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Charging Points</td><td id="map-charging" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Obstacles</td><td id="map-obstacles" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Free Cells</td><td id="map-freecells" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card" id="taskControlCard" data-card-name="taskControlCard" data-topic="task_control" draggable="true">
+                            <div class="card-header">
+                                <div class="card-title">Task Control</div>
+                                <div class="card-icon">🎮</div>
+                            </div>
+                            <div class="card-content">
+                                <div style="display: flex; flex-direction: column; gap: 15px;">
+                                    <!-- POI Dropdown -->
+                                    <div class="form-group">
+                                        <label for="poiDropdown" style="font-weight: 600;">Select Point of Interest:</label>
+                                        <select id="poiDropdown" style="width: 100%; padding: 8px;">
+                                            <option value="A">Point A</option>
+                                            <option value="B">Point B</option>
+                                            <option value="C">Point C</option>
+                                            <option value="CHARGE">Charging Station</option>
+                                            <option value="STANDBY">Standby Point</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Action Dropdown -->
+                                    <div class="form-group">
+                                        <label for="actionDropdown" style="font-weight: 600;">Action:</label>
+                                        <select id="actionDropdown" style="width: 100%; padding: 8px;" onchange="toggleActionParams()">
+                                            <option value="go">Go to Point</option>
+                                            <option value="lift">Lift</option>
+                                            <option value="wait">Wait</option>
+                                        </select>
+                                    </div>
+
+                                    <!-- Lift Parameters -->
+                                    <div id="liftParams" style="display: none;">
+                                        <label style="font-weight: 600;">Lift Direction:</label>
+                                        <div>
+                                            <label><input type="radio" name="liftDirection" value="up" checked> Up</label>
+                                            <label style="margin-left: 15px;"><input type="radio" name="liftDirection" value="down"> Down</label>
+                                        </div>
+                                    </div>
+
+                                    <!-- Wait Parameters -->
+                                    <div id="waitParams" style="display: none;">
+                                        <label for="waitSlider" style="font-weight: 600;">Wait Time: <span id="waitValue">5</span> seconds</label>
+                                        <input type="range" id="waitSlider" min="1" max="30" value="5" style="width: 100%;" oninput="document.getElementById('waitValue').textContent = this.value">
+                                    </div>
+
+                                    <!-- Execute Button -->
+                                    <button class="btn btn-primary" onclick="executeTask()" style="width: 100%;">Execute Task</button>
+
+                                    <!-- Go Back Button -->
+                                    <button class="btn btn-primary" onclick="sendToPoint('STANDBY')" style="width: 100%; background: linear-gradient(135deg, #666 0%, #444 100%);">Go Back to Standby</button>
+
+                                    <div id="taskControlStatus" style="margin-top: 10px; font-size: 14px; color: #28a745;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="card" id="taskBuilderCard" data-card-name="taskBuilderCard" data-topic="task_builder" draggable="true">
+                            <div class="card-header">
+                                <div class="card-title">Task Builder</div>
+                                <div class="card-icon">🔧</div>
+                            </div>
+                            <div class="card-content">
+                                <div style="display: flex; flex-direction: column; gap: 15px;">
+                                    <!-- Task Steps List -->
+                                    <div>
+                                        <label style="font-weight: 600;">Task Steps:</label>
+                                        <div id="taskStepsList" style="border: 1px solid #ddd; padding: 10px; min-height: 100px; max-height: 300px; overflow-y: auto; background: #f9f9f9; border-radius: 5px;">
+                                            <small style="color: #999;">No steps added yet</small>
+                                        </div>
+                                    </div>
+
+                                    <!-- Add Step Section -->
+                                    <div style="border: 1px solid #ddd; padding: 10px; border-radius: 5px;">
+                                        <label style="font-weight: 600; display: block; margin-bottom: 10px;">Add Step:</label>
+
+                                        <select id="builderPOI" style="width: 100%; padding: 8px; margin-bottom: 8px;">
+                                            <option value="A">Point A</option>
+                                            <option value="B">Point B</option>
+                                            <option value="C">Point C</option>
+                                            <option value="CHARGE">Charging Station</option>
+                                            <option value="STANDBY">Standby Point</option>
+                                        </select>
+
+                                        <select id="builderAction" style="width: 100%; padding: 8px; margin-bottom: 8px;" onchange="toggleBuilderActionParams()">
+                                            <option value="go">Go to Point</option>
+                                            <option value="lift">Lift</option>
+                                            <option value="wait">Wait</option>
+                                        </select>
+
+                                        <div id="builderLiftParams" style="display: none; margin-bottom: 8px;">
+                                            <label><input type="radio" name="builderLiftDirection" value="up" checked> Up</label>
+                                            <label style="margin-left: 15px;"><input type="radio" name="builderLiftDirection" value="down"> Down</label>
+                                        </div>
+
+                                        <div id="builderWaitParams" style="display: none; margin-bottom: 8px;">
+                                            <label>Wait: <span id="builderWaitValue">5</span>s</label>
+                                            <input type="range" id="builderWaitSlider" min="1" max="30" value="5" style="width: 100%;" oninput="document.getElementById('builderWaitValue').textContent = this.value">
+                                        </div>
+
+                                        <button class="btn btn-primary" onclick="addTaskStep()" style="width: 100%;">Add Step</button>
+                                    </div>
+
+                                    <!-- Control Buttons -->
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <button class="btn btn-primary" onclick="clearTaskSteps()">Clear All</button>
+                                        <button class="btn btn-primary" onclick="executeMultiStepTask()">Execute Task</button>
+                                    </div>
+
+                                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                                        <button class="btn btn-primary" onclick="saveTask()">Save Task</button>
+                                        <button class="btn btn-primary" onclick="document.getElementById('loadTaskFile').click()">Load Task</button>
+                                        <input type="file" id="loadTaskFile" accept=".json" style="display: none;" onchange="loadTaskFromFile(event)">
+                                    </div>
+
+                                    <div id="taskBuilderStatus" style="font-size: 14px; color: #28a745;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Systems Page -->
+                <div id="systemsPage" class="page">
+                    <div class="page-header">
+                        <h1>Systems</h1>
+                        <p>System monitoring and AI task planning</p>
+                    </div>
+                    <div class="card-grid">
+                        <div class="card" id="systemsCard">
+                            <div class="card-header">
+                                <div class="card-title">AI Task Planner</div>
+                                <div class="card-icon">🧠</div>
+                            </div>
+                            <div class="card-content">
+                                <div id="taskPlanDisplay" style="background: #f8f9fa; padding: 15px; border-radius: 5px; min-height: 200px; margin-bottom: 15px;">
+                                    <h4 style="margin-bottom: 10px; color: #2c3e50;">Current Task Plan</h4>
+                                    <div id="planSteps" style="font-family: monospace; font-size: 13px; color: #555;">
+                                        <em>No active plan. Send a command via the chatbot to see the AI planning process.</em>
+                                    </div>
+                                </div>
+                                <div id="executionStatus" style="background: #e8f4f8; padding: 15px; border-radius: 5px;">
+                                    <h4 style="margin-bottom: 10px; color: #2c3e50;">Execution Status</h4>
+                                    <div id="statusDetails" style="font-size: 14px; color: #555;">
+                                        <em>Idle - Waiting for tasks...</em>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Docs Page -->
+                <div id="docsPage" class="page">
+                    <div class="page-header">
+                        <h1>Documentation</h1>
+                        <p>Browse through the available documentation</p>
+                    </div>
+                    <div class="docs-container">
+                        <div class="accordion" id="docsAccordion">
+                            <!-- Accordion items will be loaded dynamically -->
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settingsPage" class="page">
+                    <div class="page-header">
+                        <h1>Settings</h1>
+                    </div>
+                    <form id="settingsForm" class="settings-form">
+                        <div class="form-group">
+                            <label for="simulatorEnabled">
+                                <input type="checkbox" id="simulatorEnabled" name="simulatorEnabled" checked>
+                                Enable Simulator
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="taskConfirmation">
+                                <input type="checkbox" id="taskConfirmation" name="taskConfirmation" checked>
+                                Confirm Before Executing Tasks
+                            </label>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                        <div id="settingsMessage" class="success-message"></div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>

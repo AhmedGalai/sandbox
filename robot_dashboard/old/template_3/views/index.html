@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Robot Simulator Dashboard</title>
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Login Modal -->
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>Login</h2>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">Username:</label>
+                    <input type="text" id="username" name="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">Password:</label>
+                    <input type="password" id="password" name="password" required>
+                </div>
+                <button type="submit" class="btn btn-primary">Login</button>
+                <div id="loginError" class="error-message"></div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Main Container -->
+    <div id="mainContainer" style="display: none;">
+        <!-- Navbar -->
+        <nav class="navbar">
+            <div class="navbar-brand">
+                <img src="/images/logo.jpg" alt="Logo" style="height: 40px; vertical-align: middle; margin-right: 10px;">
+                Robot Simulator
+            </div>
+            <div class="navbar-menu">
+                <a href="#" class="navbar-item active" data-page="dashboard">Dashboard</a>
+                <a href="#" class="navbar-item" data-page="settings">Settings</a>
+                <button id="themeToggle" class="btn btn-theme">🌙</button>
+                <button id="logoutBtn" class="btn btn-logout">Logout</button>
+            </div>
+        </nav>
+
+        <!-- Main Layout -->
+        <div class="main-layout">
+            <!-- Sidebar -->
+            <aside class="sidebar">
+                <!-- Chat Assistant -->
+                <h3>Robot Control</h3>
+                <div class="chatbot-container">
+                    <div id="chatMessages" class="chat-messages">
+                        <div class="chat-message bot-message">
+                            <div class="message-content">Hello! I'm your robot control assistant. You can give me tasks for the robot to execute!</div>
+                        </div>
+                    </div>
+                    <div class="chat-input-container">
+                        <input type="text" id="chatInput" placeholder="Give robot a task..." />
+                        <button id="sendChatBtn" class="btn btn-send">Send</button>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content -->
+            <main class="main-content">
+                <!-- Dashboard Page -->
+                <div id="dashboardPage" class="page active">
+                    <div class="page-header">
+                        <div>
+                            <h1>Robot Simulator</h1>
+                            <p>Monitor and control your robot</p>
+                        </div>
+                    </div>
+
+                    <div id="cardGrid" class="card-grid">
+                        <div class="card" id="simulatorCard" data-topic="simulator">
+                            <div class="card-header">
+                                <div class="card-title">Simulator</div>
+                                <div class="card-icon">🤖</div>
+                            </div>
+                            <div class="card-content">
+                                <canvas id="robotCanvas" width="600" height="600" style="border: 1px solid #ddd; max-width: 100%;"></canvas>
+                            </div>
+                        </div>
+
+                        <div class="card" id="robotStatusCard" data-topic="rob_status">
+                            <div class="card-header">
+                                <div class="card-title">Robot Status</div>
+                                <div class="card-icon">📊</div>
+                            </div>
+                            <div class="card-content">
+                                <table id="robotStatusTable" style="width: 100%; border-collapse: collapse;">
+                                    <tbody>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Position X</td><td id="status-x" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Position Y</td><td id="status-y" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Heading</td><td id="status-heading" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Current Task</td><td id="status-task" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Status</td><td id="status-status" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Nearest Label</td><td id="status-nearest" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Distance to Target</td><td id="status-distance" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Errors</td><td id="status-errors" style="padding: 8px; border: 1px solid #ddd; color: #dc3545;">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card" id="mapStatusCard" data-topic="map_status">
+                            <div class="card-header">
+                                <div class="card-title">Map Status</div>
+                                <div class="card-icon">🗺️</div>
+                            </div>
+                            <div class="card-content">
+                                <table id="mapStatusTable" style="width: 100%; border-collapse: collapse;">
+                                    <tbody>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Grid Size</td><td id="map-gridsize" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Work Points</td><td id="map-workpoints" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Charging Points</td><td id="map-charging" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Obstacles</td><td id="map-obstacles" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                        <tr><td style="padding: 8px; border: 1px solid #ddd; font-weight: 600;">Free Cells</td><td id="map-freecells" style="padding: 8px; border: 1px solid #ddd;">-</td></tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <div class="card" id="taskControlCard" data-topic="task_control">
+                            <div class="card-header">
+                                <div class="card-title">Task Control</div>
+                                <div class="card-icon">🎮</div>
+                            </div>
+                            <div class="card-content">
+                                <div style="display: flex; flex-direction: column; gap: 10px;">
+                                    <label style="font-weight: 600; color: #555;">Send Robot to Point:</label>
+                                    <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px;">
+                                        <button class="btn btn-primary" onclick="sendToPoint('A')">Go to Point A</button>
+                                        <button class="btn btn-primary" onclick="sendToPoint('B')">Go to Point B</button>
+                                        <button class="btn btn-primary" onclick="sendToPoint('C')">Go to Point C</button>
+                                        <button class="btn btn-primary" onclick="sendToPoint('CHARGE')">Go to Charging</button>
+                                    </div>
+                                    <div id="taskControlStatus" style="margin-top: 10px; font-size: 14px; color: #28a745;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Settings Page -->
+                <div id="settingsPage" class="page">
+                    <div class="page-header">
+                        <h1>Settings</h1>
+                    </div>
+                    <form id="settingsForm" class="settings-form">
+                        <div class="form-group">
+                            <label for="displayName">Display Name:</label>
+                            <input type="text" id="displayName" name="displayName" value="Admin User">
+                        </div>
+                        <div class="form-group">
+                            <label for="email">Email:</label>
+                            <input type="email" id="email" name="email" value="admin@example.com">
+                        </div>
+                        <div class="form-group">
+                            <label for="theme">Theme:</label>
+                            <select id="theme" name="theme">
+                                <option value="light">Light</option>
+                                <option value="dark">Dark</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="notifications">
+                                <input type="checkbox" id="notifications" name="notifications" checked>
+                                Enable Notifications
+                            </label>
+                        </div>
+                        <div class="form-group">
+                            <label for="language">Language:</label>
+                            <select id="language" name="language">
+                                <option value="en">English</option>
+                                <option value="es">Spanish</option>
+                                <option value="fr">French</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label for="timezone">Timezone:</label>
+                            <select id="timezone" name="timezone">
+                                <option value="UTC">UTC</option>
+                                <option value="EST">EST</option>
+                                <option value="PST">PST</option>
+                            </select>
+                        </div>
+                        <button type="submit" class="btn btn-primary">Save Settings</button>
+                        <div id="settingsMessage" class="success-message"></div>
+                    </form>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
