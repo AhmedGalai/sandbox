@@ -1,0 +1,56 @@
+# CMake build files
+build/
+CMakeFiles/
+CMakeCache.txt
+cmake_install.cmake
+Makefile
+*.cmake
+!CMakeLists.txt
+
+# Compiled binaries
+bin/
+lib/
+*.o
+*.so
+*.a
+*.dylib
+*.dll
+*.exe
+VSE
+
+# Qt generated files
+moc_*.cpp
+ui_*.h
+qrc_*.cpp
+*.qm
+
+# IDE files
+.vscode/
+.idea/
+*.user
+*.pro.user
+*.autosave
+*.swp
+*.swo
+*~
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Temporary files
+*.log
+*.tmp
+*.bak
+
+# Test output
+Testing/
+test_results/
+
+# External dependencies (if locally downloaded)
+external/nlohmann/
+
+# Documentation build
+docs/html/
+docs/latex/
