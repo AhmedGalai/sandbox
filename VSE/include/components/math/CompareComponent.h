@@ -6,7 +6,7 @@
 #ifndef VSE_COMPONENTS_MATH_COMPARECOMPONENT_H
 #define VSE_COMPONENTS_MATH_COMPARECOMPONENT_H
 
-#include "core/ProcessorComponent.h"
+#include "components/ProcessorComponent.h"
 #include "core/Parameter.h"
 
 namespace VSE {
@@ -43,7 +43,7 @@ enum class CompareMode {
  * - Mode (Int): Comparison mode (0=GT, 1=LT, 2=EQ, 3=GE, 4=LE, 5=NE)
  * - Epsilon (Float): Tolerance for floating-point equality (default: 1e-6)
  */
-class CompareComponent : public Core::ProcessorComponent {
+class CompareComponent : public VSE::ProcessorComponent {
     Q_OBJECT
 
 public:
@@ -57,7 +57,7 @@ public:
      * @brief Execute comparison operation
      * @param context Execution context
      */
-    void execute(Core::ExecutionContext* context) override;
+    void execute() override;
 
     /**
      * @brief Serialize component state
@@ -70,7 +70,7 @@ public:
      * @param json Serialized state
      * @return true if successful
      */
-    bool deserialize(const nlohmann::json& json) override;
+    void deserialize(const nlohmann::json& json) override;
 
     /**
      * @brief Get current comparison mode

@@ -36,7 +36,7 @@ AndGate::AndGate(const nlohmann::json& params)
     }
 }
 
-void AndGate::execute(Core::ExecutionContext* context) {
+void AndGate::execute() {
     // Get input values
     QVariant inputA = getInputValue("A");
     QVariant inputB = getInputValue("B");
@@ -63,7 +63,7 @@ nlohmann::json AndGate::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool AndGate::deserialize(const nlohmann::json& json) {
+void AndGate::deserialize(const nlohmann::jsonbool AndGate::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

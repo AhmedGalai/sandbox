@@ -15,10 +15,11 @@ class QVBoxLayout;
 class QFormLayout;
 class QScrollArea;
 class QLabel;
-class ComponentNodeItem;
 
 namespace VSE {
 namespace GUI {
+
+class ComponentNodeItem;
 
 /**
  * @class InspectorWidget

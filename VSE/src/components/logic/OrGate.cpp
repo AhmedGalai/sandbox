@@ -36,7 +36,7 @@ OrGate::OrGate(const nlohmann::json& params)
     }
 }
 
-void OrGate::execute(Core::ExecutionContext* context) {
+void OrGate::execute() {
     // Get input values
     QVariant inputA = getInputValue("A");
     QVariant inputB = getInputValue("B");
@@ -63,7 +63,7 @@ nlohmann::json OrGate::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool OrGate::deserialize(const nlohmann::json& json) {
+void OrGate::deserialize(const nlohmann::jsonbool OrGate::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

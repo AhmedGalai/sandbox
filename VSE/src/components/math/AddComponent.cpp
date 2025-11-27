@@ -36,7 +36,7 @@ AddComponent::AddComponent(const nlohmann::json& params)
     }
 }
 
-void AddComponent::execute(Core::ExecutionContext* context) {
+void AddComponent::execute() {
     // Get input values
     QVariant inputA = getInputValue("A");
     QVariant inputB = getInputValue("B");
@@ -71,7 +71,7 @@ nlohmann::json AddComponent::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool AddComponent::deserialize(const nlohmann::json& json) {
+void AddComponent::deserialize(const nlohmann::jsonbool AddComponent::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

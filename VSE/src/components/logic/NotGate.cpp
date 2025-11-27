@@ -35,7 +35,7 @@ NotGate::NotGate(const nlohmann::json& params)
     }
 }
 
-void NotGate::execute(Core::ExecutionContext* context) {
+void NotGate::execute() {
     // Get input value
     QVariant input = getInputValue("Input");
 
@@ -60,7 +60,7 @@ nlohmann::json NotGate::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool NotGate::deserialize(const nlohmann::json& json) {
+void NotGate::deserialize(const nlohmann::jsonbool NotGate::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

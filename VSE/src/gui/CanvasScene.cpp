@@ -193,8 +193,7 @@ void CanvasScene::mouseReleaseEvent(QGraphicsSceneMouseEvent* event)
 
 void CanvasScene::onSelectionChanged()
 {
-    QList<ComponentNodeItem*> selectedNodes = getSelectedComponentNodes();
-    emit selectionChanged(selectedNodes);
+    emit selectionChanged();
 }
 
 QList<ComponentNodeItem*> CanvasScene::getSelectedComponentNodes() const
