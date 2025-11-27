@@ -17,6 +17,7 @@
 #include <QDoubleSpinBox>
 #include <QLCDNumber>
 #include <QGroupBox>
+#include <QComboBox>
 #include <memory>
 
 namespace VSE {

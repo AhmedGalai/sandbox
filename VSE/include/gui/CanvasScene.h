@@ -10,12 +10,12 @@
 #include <QHash>
 #include <QSet>
 
+namespace VSE {
+namespace GUI {
+
 // Forward declarations
 class ComponentNodeItem;
 class ConnectionItem;
-
-namespace VSE {
-namespace GUI {
 
 /**
  * @class CanvasScene
@@ -98,9 +98,9 @@ signals:
 
     /**
      * @brief Emitted when selection changes
-     * @param selectedNodes Currently selected component nodes
+     * Use getSelectedComponentNodes() to get the current selection
      */
-    void selectionChanged(const QList<ComponentNodeItem*>& selectedNodes);
+    void selectionChanged();
 
     /**
      * @brief Emitted when a component node is added

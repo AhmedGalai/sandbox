@@ -6,7 +6,7 @@
 #ifndef VSE_COMPONENTS_LOGIC_NOTGATE_H
 #define VSE_COMPONENTS_LOGIC_NOTGATE_H
 
-#include "core/ProcessorComponent.h"
+#include "components/ProcessorComponent.h"
 
 namespace VSE {
 namespace Components {
@@ -32,7 +32,7 @@ namespace Logic {
  * Outputs:
  * - Output (Boolean): NOT Input
  */
-class NotGate : public Core::ProcessorComponent {
+class NotGate : public VSE::ProcessorComponent {
     Q_OBJECT
 
 public:
@@ -46,7 +46,7 @@ public:
      * @brief Execute logical NOT operation
      * @param context Execution context
      */
-    void execute(Core::ExecutionContext* context) override;
+    void execute() override;
 
     /**
      * @brief Serialize component state
@@ -59,7 +59,7 @@ public:
      * @param json Serialized state
      * @return true if successful
      */
-    bool deserialize(const nlohmann::json& json) override;
+    void deserialize(const nlohmann::json& json) override;
 };
 
 } // namespace Logic

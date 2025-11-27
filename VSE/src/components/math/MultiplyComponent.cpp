@@ -36,7 +36,7 @@ MultiplyComponent::MultiplyComponent(const nlohmann::json& params)
     }
 }
 
-void MultiplyComponent::execute(Core::ExecutionContext* context) {
+void MultiplyComponent::execute() {
     // Get input values
     QVariant inputA = getInputValue("A");
     QVariant inputB = getInputValue("B");
@@ -71,7 +71,7 @@ nlohmann::json MultiplyComponent::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool MultiplyComponent::deserialize(const nlohmann::json& json) {
+void MultiplyComponent::deserialize(const nlohmann::jsonbool MultiplyComponent::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

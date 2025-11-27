@@ -36,7 +36,7 @@ XorGate::XorGate(const nlohmann::json& params)
     }
 }
 
-void XorGate::execute(Core::ExecutionContext* context) {
+void XorGate::execute() {
     // Get input values
     QVariant inputA = getInputValue("A");
     QVariant inputB = getInputValue("B");
@@ -63,7 +63,7 @@ nlohmann::json XorGate::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool XorGate::deserialize(const nlohmann::json& json) {
+void XorGate::deserialize(const nlohmann::jsonbool XorGate::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

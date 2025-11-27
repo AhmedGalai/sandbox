@@ -6,7 +6,7 @@
 #ifndef VSE_COMPONENTS_LOGIC_ANDGATE_H
 #define VSE_COMPONENTS_LOGIC_ANDGATE_H
 
-#include "core/ProcessorComponent.h"
+#include "components/ProcessorComponent.h"
 
 namespace VSE {
 namespace Components {
@@ -35,7 +35,7 @@ namespace Logic {
  * Outputs:
  * - Output (Boolean): A AND B
  */
-class AndGate : public Core::ProcessorComponent {
+class AndGate : public VSE::ProcessorComponent {
     Q_OBJECT
 
 public:
@@ -49,7 +49,7 @@ public:
      * @brief Execute logical AND operation
      * @param context Execution context
      */
-    void execute(Core::ExecutionContext* context) override;
+    void execute() override;
 
     /**
      * @brief Serialize component state
@@ -62,7 +62,7 @@ public:
      * @param json Serialized state
      * @return true if successful
      */
-    bool deserialize(const nlohmann::json& json) override;
+    void deserialize(const nlohmann::json& json) override;
 };
 
 } // namespace Logic

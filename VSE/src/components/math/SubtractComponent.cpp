@@ -36,7 +36,7 @@ SubtractComponent::SubtractComponent(const nlohmann::json& params)
     }
 }
 
-void SubtractComponent::execute(Core::ExecutionContext* context) {
+void SubtractComponent::execute() {
     // Get input values
     QVariant inputA = getInputValue("A");
     QVariant inputB = getInputValue("B");
@@ -71,7 +71,7 @@ nlohmann::json SubtractComponent::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool SubtractComponent::deserialize(const nlohmann::json& json) {
+void SubtractComponent::deserialize(const nlohmann::jsonbool SubtractComponent::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

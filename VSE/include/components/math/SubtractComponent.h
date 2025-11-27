@@ -6,7 +6,7 @@
 #ifndef VSE_COMPONENTS_MATH_SUBTRACTCOMPONENT_H
 #define VSE_COMPONENTS_MATH_SUBTRACTCOMPONENT_H
 
-#include "core/ProcessorComponent.h"
+#include "components/ProcessorComponent.h"
 
 namespace VSE {
 namespace Components {
@@ -26,7 +26,7 @@ namespace Math {
  * Outputs:
  * - Result (Number): A - B
  */
-class SubtractComponent : public Core::ProcessorComponent {
+class SubtractComponent : public VSE::ProcessorComponent {
     Q_OBJECT
 
 public:
@@ -40,7 +40,7 @@ public:
      * @brief Execute subtraction operation
      * @param context Execution context
      */
-    void execute(Core::ExecutionContext* context) override;
+    void execute() override;
 
     /**
      * @brief Serialize component state
@@ -53,7 +53,7 @@ public:
      * @param json Serialized state
      * @return true if successful
      */
-    bool deserialize(const nlohmann::json& json) override;
+    void deserialize(const nlohmann::json& json) override;
 };
 
 } // namespace Math

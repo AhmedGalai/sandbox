@@ -46,7 +46,7 @@ CompareComponent::CompareComponent(const nlohmann::json& params)
     }
 }
 
-void CompareComponent::execute(Core::ExecutionContext* context) {
+void CompareComponent::execute() {
     // Get input values
     QVariant inputA = getInputValue("A");
     QVariant inputB = getInputValue("B");
@@ -141,7 +141,7 @@ nlohmann::json CompareComponent::serialize() const {
     return ProcessorComponent::serialize();
 }
 
-bool CompareComponent::deserialize(const nlohmann::json& json) {
+void CompareComponent::deserialize(const nlohmann::jsonbool CompareComponent::deserialize(const nlohmann::json& json) json) {
     return ProcessorComponent::deserialize(json);
 }
 

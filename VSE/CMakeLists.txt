@@ -29,6 +29,13 @@ set(CMAKE_AUTOMOC ON)
 set(CMAKE_AUTOUIC ON)
 set(CMAKE_AUTORCC ON)
 
+# Disable MOC grouping to reduce memory usage during compilation
+set(CMAKE_AUTOMOC_COMPILER_PREDEFINES OFF)
+set(CMAKE_AUTOMOC_MOC_OPTIONS "")
+if(CMAKE_VERSION VERSION_GREATER_EQUAL "3.16")
+    set(CMAKE_AUTOMOC_DEPEND_FILTERS "")
+endif()
+
 # Include directories
 include_directories(
     ${CMAKE_SOURCE_DIR}/include
@@ -42,7 +49,7 @@ include_directories(
 # Look for nlohmann/json in external directory
 # This is a header-only library, so we just need to add the include path
 if(EXISTS "${CMAKE_SOURCE_DIR}/external/nlohmann")
-    include_directories(${CMAKE_SOURCE_DIR}/external/nlohmann)
+    include_directories(${CMAKE_SOURCE_DIR}/external)
     message(STATUS "Found nlohmann/json in external directory")
 else()
     # Try to find it via find_package if installed system-wide
