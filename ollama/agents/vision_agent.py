@@ -9,9 +9,9 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from ..core.agent import BaseAgent
-from ..core.exceptions import AgentExecutionError, VisionProcessingError
-from ..core.ollama_client import OllamaClient
+from core.agent import BaseAgent
+from core.exceptions import AgentExecutionError, VisionProcessingError
+from core.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 

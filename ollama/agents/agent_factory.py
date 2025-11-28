@@ -7,9 +7,9 @@ import logging
 from pathlib import Path
 from typing import Any, Dict, Optional, Type
 
-from ..core.agent import BaseAgent
-from ..core.exceptions import AgentExecutionError
-from ..core.ollama_client import OllamaClient
+from core.agent import BaseAgent
+from core.exceptions import AgentExecutionError
+from core.ollama_client import OllamaClient
 from .developer_agent import DeveloperAgent
 from .planner_agent import PlannerAgent
 from .researcher_agent import ResearcherAgent

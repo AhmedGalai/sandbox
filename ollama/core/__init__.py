@@ -10,9 +10,9 @@ Provides:
 - ConversationManager: Conversation history tracking and persistence
 """
 
-from .agent import BaseAgent, SimpleAgent, StreamingAgent, AgentState
-from .conversation import ConversationManager
-from .exceptions import (
+from core.agent import BaseAgent, SimpleAgent, StreamingAgent, AgentState
+from core.conversation import ConversationManager
+from core.exceptions import (
     AgentExecutionError,
     AgentTimeoutError,
     ConfigurationError,
@@ -21,8 +21,8 @@ from .exceptions import (
     OllamaException,
     VisionProcessingError,
 )
-from .ollama_client import OllamaClient
-from .orchestrator import (
+from core.ollama_client import OllamaClient
+from core.orchestrator import (
     AgentOrchestrator,
     ExecutionResult,
     Task,
