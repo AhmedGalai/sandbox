@@ -1,0 +1,32 @@
+# Model assignments for different agent types
+# Maps agent names to their respective Ollama models
+
+models:
+  researcher: qwen2.5:7b
+  developer: llama3.2:3b
+  planner: qwen2.5:7b
+  vision: llava:7b
+  default: llama3.2:3b
+
+# Model tier information for reference
+model_info:
+  qwen2.5:7b:
+    type: text
+    size: 7b
+    capabilities:
+      - research
+      - analysis
+      - writing
+  llama3.2:3b:
+    type: text
+    size: 3b
+    capabilities:
+      - development
+      - coding
+      - reasoning
+  llava:7b:
+    type: vision
+    size: 7b
+    capabilities:
+      - image_understanding
+      - visual_analysis
