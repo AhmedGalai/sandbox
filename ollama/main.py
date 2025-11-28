@@ -124,12 +124,15 @@ class OllamaAgentCLI:
         """Run the CLI application main loop."""
         self.running = True
 
-        # Setup signal handlers for graceful shutdown
-        loop = asyncio.get_event_loop()
-        for sig in (signal.SIGTERM, signal.SIGINT):
-            loop.add_signal_handler(
-                sig, lambda: asyncio.create_task(self.shutdown())
-            )
+        # Setup signal handlers for graceful shutdown (Unix only)
+        # Note: signal handlers are not supported on Windows
+        # Windows users can use Ctrl+C (handled by KeyboardInterrupt)
+        if sys.platform != "win32":
+            loop = asyncio.get_event_loop()
+            for sig in (signal.SIGTERM, signal.SIGINT):
+                loop.add_signal_handler(
+                    sig, lambda: asyncio.create_task(self.shutdown())
+                )
 
         try:
             await self.initialize()
