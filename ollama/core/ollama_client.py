@@ -9,8 +9,8 @@ from typing import AsyncGenerator, Optional
 
 import httpx
 
-from ..config.settings import get_settings
-from .exceptions import (
+from config.settings import get_settings
+from core.exceptions import (
     InvalidModelError,
     OllamaConnectionError,
     VisionProcessingError,

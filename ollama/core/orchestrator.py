@@ -10,8 +10,8 @@ from datetime import datetime
 from enum import Enum
 from typing import Any, Callable, Dict, List, Optional
 
-from .agent import BaseAgent
-from .exceptions import AgentExecutionError
+from core.agent import BaseAgent
+from core.exceptions import AgentExecutionError
 
 logger = logging.getLogger(__name__)
 

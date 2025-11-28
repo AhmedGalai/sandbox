@@ -10,8 +10,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, AsyncGenerator, Dict, Optional
 
-from .exceptions import AgentExecutionError
-from .ollama_client import OllamaClient
+from core.exceptions import AgentExecutionError
+from core.ollama_client import OllamaClient
 
 logger = logging.getLogger(__name__)
 
