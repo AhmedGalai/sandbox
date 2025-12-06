@@ -73,14 +73,17 @@ class EnhancedNodeEditor:
         Returns:
             int: The UI element tag
         """
-        with dpg.node_editor(
-            tag=self.tag,
-            parent=parent,
-            callback=self._on_link_created,
-            delink_callback=self._on_link_deleted,
-            minimap=True,
-            minimap_location=dpg.mvNodeMiniMap_Location_BottomRight
-        ):
+        editor_kwargs = {
+            "tag": self.tag,
+            "callback": self._on_link_created,
+            "delink_callback": self._on_link_deleted,
+            "minimap": True,
+            "minimap_location": dpg.mvNodeMiniMap_Location_BottomRight
+        }
+        if parent is not None:
+            editor_kwargs["parent"] = parent
+
+        with dpg.node_editor(**editor_kwargs):
             pass  # Nodes will be added dynamically
 
         return self.tag

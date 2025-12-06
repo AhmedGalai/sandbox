@@ -49,7 +49,6 @@ class InputInterface(ComponentBase):
         # Parameter: Interface name
         self.add_parameter(StringParameter(
             name="interface_name",
-            display_name="Interface Name",
             default="Input1",
             description="Name of the external input pin"
         ))
@@ -57,10 +56,9 @@ class InputInterface(ComponentBase):
         # Parameter: Data type
         self.add_parameter(IntParameter(
             name="data_type",
-            display_name="Data Type",
             default=DataType.ANY.value,
-            min_value=0,
-            max_value=len(DataType) - 1,
+            min_val=0,
+            max_val=len(DataType) - 1,
             description="Data type for this interface"
         ))
 
@@ -123,7 +121,6 @@ class OutputInterface(ComponentBase):
         # Parameter: Interface name
         self.add_parameter(StringParameter(
             name="interface_name",
-            display_name="Interface Name",
             default="Output1",
             description="Name of the external output pin"
         ))
@@ -131,10 +128,9 @@ class OutputInterface(ComponentBase):
         # Parameter: Data type
         self.add_parameter(IntParameter(
             name="data_type",
-            display_name="Data Type",
             default=DataType.ANY.value,
-            min_value=0,
-            max_value=len(DataType) - 1,
+            min_val=0,
+            max_val=len(DataType) - 1,
             description="Data type for this interface"
         ))
 

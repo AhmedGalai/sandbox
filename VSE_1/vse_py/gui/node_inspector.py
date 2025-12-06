@@ -28,10 +28,11 @@ class NodeInspector:
         Returns:
             int: The UI element tag
         """
-        with dpg.group(tag=self.tag, parent=parent):
-            dpg.add_text("Node Inspector", color=(255, 255, 255))
-            dpg.add_separator()
+        group_kwargs = {"tag": self.tag}
+        if parent is not None:
+            group_kwargs["parent"] = parent
 
+        with dpg.group(**group_kwargs):
             with dpg.child_window(tag=self.content_tag, height=-1, width=-1):
                 dpg.add_text("No node selected", color=(150, 150, 150))
 

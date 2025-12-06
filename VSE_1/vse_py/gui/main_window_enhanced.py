@@ -40,8 +40,6 @@ class MainWindowEnhanced:
         with dpg.window(
             tag=self.window_tag,
             label="VSE_1 - Visual Scripting Environment",
-            width=-1,
-            height=-1,
             no_close=True,
             no_collapse=True,
             menubar=True
@@ -65,10 +63,12 @@ class MainWindowEnhanced:
                 with dpg.menu(label="Help"):
                     dpg.add_menu_item(label="About", callback=self._on_about)
 
-            # Main layout with splitters
+            # Main layout with horizontal group
             with dpg.group(horizontal=True):
                 # Left sidebar - Node Library (250px wide)
                 with dpg.child_window(width=250, height=-1):
+                    dpg.add_text("Node Library", color=(200, 220, 255))
+                    dpg.add_separator()
                     self.node_library.create()
 
                 # Center - Node Editor
@@ -80,19 +80,25 @@ class MainWindowEnhanced:
                 # Right sidebar - Minimap, Tree, Inspector (250px wide)
                 with dpg.child_window(width=250, height=-1):
                     # Minimap section
+                    dpg.add_text("Minimap", color=(200, 220, 255))
+                    dpg.add_separator()
                     self.minimap.create()
 
                     dpg.add_spacer(height=10)
+                    dpg.add_separator()
 
                     # Nodes tree section
-                    with dpg.child_window(height=200):
-                        self.nodes_tree.create()
+                    dpg.add_text("Nodes Tree", color=(200, 220, 255))
+                    dpg.add_separator()
+                    self.nodes_tree.create()
 
                     dpg.add_spacer(height=10)
+                    dpg.add_separator()
 
                     # Inspector section
-                    with dpg.child_window(height=-1):
-                        self.node_inspector.create()
+                    dpg.add_text("Node Inspector", color=(200, 220, 255))
+                    dpg.add_separator()
+                    self.node_inspector.create()
 
         return self.window_tag
 
