@@ -173,10 +173,6 @@ class EnhancedNodeEditor:
                 ):
                     dpg.add_text(f"{pin_name} ({pin.dtype.name})")
 
-            # Add spacing between inputs and outputs
-            if component.input_pins and component.output_pins:
-                dpg.add_spacer(height=10)
-
             # Output pins
             for pin_name, pin in component.output_pins.items():
                 pin_tag = dpg.generate_uuid()
@@ -186,9 +182,6 @@ class EnhancedNodeEditor:
                     user_data={"node_id": node_id, "pin_name": pin_name, "is_output": True}
                 ):
                     dpg.add_text(f"{pin_name} ({pin.dtype.name})")
-
-        # Make node selectable
-        dpg.set_item_callback(node_tag, lambda s, a: self._on_node_clicked(node_id))
 
     def _on_node_clicked(self, node_id: str):
         """Handle node selection.
