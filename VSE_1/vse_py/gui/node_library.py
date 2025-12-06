@@ -37,10 +37,11 @@ class NodeLibrary:
         Returns:
             int: The UI element tag
         """
-        with dpg.group(tag=self.tag, parent=parent):
-            dpg.add_text("Node Library", color=(255, 255, 255))
-            dpg.add_separator()
+        group_kwargs = {"tag": self.tag}
+        if parent is not None:
+            group_kwargs["parent"] = parent
 
+        with dpg.group(**group_kwargs):
             # Search box
             dpg.add_input_text(
                 tag=self.search_tag,

@@ -34,10 +34,11 @@ class Minimap:
         Returns:
             int: The UI element tag
         """
-        with dpg.group(tag=self.tag, parent=parent):
-            dpg.add_text("Minimap", color=(255, 255, 255))
-            dpg.add_separator()
+        group_kwargs = {"tag": self.tag}
+        if parent is not None:
+            group_kwargs["parent"] = parent
 
+        with dpg.group(**group_kwargs):
             with dpg.drawlist(
                 tag=self.canvas_tag,
                 width=self.width,

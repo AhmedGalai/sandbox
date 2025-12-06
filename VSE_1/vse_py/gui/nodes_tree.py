@@ -33,11 +33,12 @@ class NodesTree:
         Returns:
             int: The UI element tag
         """
-        with dpg.group(tag=self.tag, parent=parent):
-            dpg.add_text("Nodes Tree", color=(255, 255, 255))
-            dpg.add_separator()
+        group_kwargs = {"tag": self.tag}
+        if parent is not None:
+            group_kwargs["parent"] = parent
 
-            with dpg.child_window(tag=self.tree_tag, height=-1, width=-1):
+        with dpg.group(**group_kwargs):
+            with dpg.child_window(tag=self.tree_tag, height=200, width=-1):
                 dpg.add_text("No nodes in graph", color=(150, 150, 150))
 
         return self.tag
