@@ -2,6 +2,7 @@ import time
 import json
 import network
 import socket
+import gc
 
 from machine import Pin
 import dht
@@ -78,6 +79,9 @@ def http_response(body, status="200 OK", content_type="application/json"):
 
 def handle_client(cl):
     try:
+        # Set socket timeout to prevent hanging
+        cl.settimeout(2.0)
+
         req = cl.recv(1024) or b""
         req_line = req.split(b"\r\n", 1)[0].decode("utf-8", "ignore")
         parts = req_line.split()
@@ -85,14 +89,14 @@ def handle_client(cl):
 
         if path == "/" or path.startswith("/health"):
             body = json.dumps({"ok": True, "uptime_ms": time.ticks_ms()})
-            cl.send(http_response(body))
+            cl.sendall(http_response(body))
             return
 
         if path.startswith("/api/dht"):
             r = read_dht_cached()
             if r["err"] is not None:
                 body = json.dumps({"ok": False, "error": r["err"]})
-                cl.send(http_response(body, status="503 Service Unavailable"))
+                cl.sendall(http_response(body, status="503 Service Unavailable"))
                 return
 
             body = json.dumps({
@@ -102,11 +106,13 @@ def handle_client(cl):
                 "sample_age_ms": time.ticks_diff(time.ticks_ms(), r["ts"]),
                 "uptime_ms": time.ticks_ms(),
             })
-            cl.send(http_response(body))
+            cl.sendall(http_response(body))
             return
 
-        cl.send(http_response(json.dumps({"ok": False, "error": "not found"}), status="404 Not Found"))
+        cl.sendall(http_response(json.dumps({"ok": False, "error": "not found"}), status="404 Not Found"))
 
+    except Exception as e:
+        print("Error handling client:", e)
     finally:
         try:
             cl.close()
@@ -118,12 +124,34 @@ def serve_forever():
     s = socket.socket()
     s.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
     s.bind(addr)
-    s.listen(5)
+    s.listen(3)  # Reduced backlog to prevent queue buildup
     print("HTTP server listening on port", HTTP_PORT)
 
+    request_count = 0
+
     while True:
-        cl, _ = s.accept()
-        handle_client(cl)
+        try:
+            cl, addr_info = s.accept()
+            print(f"Client connected from {addr_info}")
+            handle_client(cl)
+            request_count += 1
+
+            # Run garbage collection every 10 requests to free memory
+            if request_count % 10 == 0:
+                gc.collect()
+                print(f"Handled {request_count} requests. Free mem: {gc.mem_free()} bytes")
+
+        except Exception as e:
+            print("Error accepting client:", e)
+            # Force garbage collection on error
+            gc.collect()
+            time.sleep(0.1)
+
+print("Starting DHT sensor server...")
+print(f"Initial free memory: {gc.mem_free()} bytes")
+
+# Enable automatic garbage collection
+gc.enable()
 
 wifi_connect()
 serve_forever()
