@@ -2,6 +2,8 @@ import time
 from datetime import datetime
 import requests
 import streamlit as st
+import plotly.graph_objects as go
+from collections import deque
 
 # ============================================================================
 # CONFIGURATION
@@ -9,27 +11,31 @@ import streamlit as st
 ADMIN_USERNAME = "admin"
 ADMIN_PASSWORD = "admin"
 
-# Shelly Pro Plug API endpoints configuration
-# Add your Shelly devices here
-SHELLY_DEVICES = {
-    "Device 1": {
+# Device configuration - Shelly plugs and DHT sensors
+# Add your devices here
+DEVICES = {
+    "DHT_Sensor": {
+        "ip": "192.168.178.189",
+        "name": "DHT Temperature & Humidity Sensor",
+        "type": "dht",
+        "enabled": True  # Set to True when you have actual device
+    },
+    "Plug_1": {
         "ip": "192.168.1.100",
         "name": "Living Room Plug",
-        "enabled": False  # Set to True when you have actual device
+        "type": "shelly",
+        "enabled": False
     },
-    "Device 2": {
+    "Plug_2": {
         "ip": "192.168.1.101",
         "name": "Bedroom Plug",
+        "type": "shelly",
         "enabled": False
     },
-    "Device 3": {
+    "Plug_3": {
         "ip": "192.168.1.102",
         "name": "Kitchen Plug",
-        "enabled": False
-    },
-    "Device 4": {
-        "ip": "192.168.1.103",
-        "name": "Office Plug",
+        "type": "shelly",
         "enabled": False
     },
 }
@@ -52,13 +58,16 @@ if "authenticated" not in st.session_state:
 
 if "device_states" not in st.session_state:
     st.session_state.device_states = {k: {"on": False, "power": 0.0, "energy": 0.0}
-                                       for k in SHELLY_DEVICES.keys()}
+                                       for k in DEVICES.keys()}
 
 if "last_update" not in st.session_state:
     st.session_state.last_update = None
 
 if "devices_config" not in st.session_state:
-    st.session_state.devices_config = SHELLY_DEVICES.copy()
+    st.session_state.devices_config = DEVICES.copy()
+
+if "sensor_history" not in st.session_state:
+    st.session_state.sensor_history = {}  # Store historical sensor data
 
 # ============================================================================
 # SHELLY API FUNCTIONS
@@ -108,6 +117,98 @@ def shelly_toggle(ip: str, turn_on: bool, timeout: int = 3):
         return {"success": False, "error": f"Request failed: {str(e)}"}
     except Exception as e:
         return {"success": False, "error": f"Unexpected error: {str(e)}"}
+
+# ============================================================================
+# DHT SENSOR API FUNCTIONS
+# ============================================================================
+def dht_get_data(ip: str, timeout: int = 3):
+    """Get temperature and humidity data from DHT sensor"""
+    try:
+        url = f"http://{ip}/api/dht"
+        response = requests.get(url, timeout=timeout)
+        response.raise_for_status()
+        data = response.json()
+        return {
+            "success": True,
+            "temperature": data.get("temperature", 0.0),
+            "humidity": data.get("humidity", 0.0),
+            "timestamp": datetime.now()
+        }
+    except requests.exceptions.Timeout:
+        return {"success": False, "error": f"Connection timeout after {timeout}s"}
+    except requests.exceptions.ConnectionError:
+        return {"success": False, "error": f"Cannot connect to device at {ip}"}
+    except requests.exceptions.HTTPError as e:
+        return {"success": False, "error": f"HTTP error: {e.response.status_code}"}
+    except requests.exceptions.RequestException as e:
+        return {"success": False, "error": f"Request failed: {str(e)}"}
+    except ValueError as e:
+        return {"success": False, "error": "Invalid JSON response from device"}
+    except Exception as e:
+        return {"success": False, "error": f"Unexpected error: {str(e)}"}
+
+# ============================================================================
+# HELPER FUNCTIONS
+# ============================================================================
+def store_sensor_data(device_key: str, temperature: float, humidity: float, timestamp: datetime, max_points: int = 50):
+    """Store sensor data in history with a maximum number of points"""
+    if device_key not in st.session_state.sensor_history:
+        st.session_state.sensor_history[device_key] = {
+            "timestamps": deque(maxlen=max_points),
+            "temperatures": deque(maxlen=max_points),
+            "humidities": deque(maxlen=max_points)
+        }
+
+    st.session_state.sensor_history[device_key]["timestamps"].append(timestamp)
+    st.session_state.sensor_history[device_key]["temperatures"].append(temperature)
+    st.session_state.sensor_history[device_key]["humidities"].append(humidity)
+
+def create_sensor_chart(device_key: str, metric: str = "temperature"):
+    """Create a plotly chart for sensor data"""
+    if device_key not in st.session_state.sensor_history:
+        return None
+
+    history = st.session_state.sensor_history[device_key]
+
+    if len(history["timestamps"]) == 0:
+        return None
+
+    fig = go.Figure()
+
+    if metric == "temperature":
+        fig.add_trace(go.Scatter(
+            x=list(history["timestamps"]),
+            y=list(history["temperatures"]),
+            mode='lines+markers',
+            name='Temperature',
+            line=dict(color='#FF6B6B', width=2),
+            marker=dict(size=6)
+        ))
+        fig.update_layout(
+            title="Temperature History",
+            xaxis_title="Time",
+            yaxis_title="Temperature (°C)",
+            height=250,
+            margin=dict(l=0, r=0, t=30, b=0)
+        )
+    elif metric == "humidity":
+        fig.add_trace(go.Scatter(
+            x=list(history["timestamps"]),
+            y=list(history["humidities"]),
+            mode='lines+markers',
+            name='Humidity',
+            line=dict(color='#4ECDC4', width=2),
+            marker=dict(size=6)
+        ))
+        fig.update_layout(
+            title="Humidity History",
+            xaxis_title="Time",
+            yaxis_title="Humidity (%)",
+            height=250,
+            margin=dict(l=0, r=0, t=30, b=0)
+        )
+
+    return fig
 
 # ============================================================================
 # LOGIN MODAL
@@ -218,12 +319,14 @@ with st.sidebar:
 
     st.subheader("About")
     st.info("""
-    This dashboard controls multiple Shelly Pro Plug devices.
+    This dashboard controls Shelly plugs and monitors DHT sensors.
 
     **Features:**
     - Real-time device status
-    - Power monitoring
-    - Energy consumption tracking
+    - Power monitoring (Shelly plugs)
+    - Energy consumption tracking (Shelly plugs)
+    - Temperature & humidity monitoring (DHT sensors)
+    - Historical data plotting (DHT sensors)
     - Remote control
     """)
 
@@ -250,6 +353,7 @@ with tab1:
                 break
 
             device_key, device_config = devices_list[idx]
+            device_type = device_config.get('type', 'shelly')
 
             with col:
                 with st.container():
@@ -258,72 +362,106 @@ with tab1:
                     # Device header
                     device_col1, device_col2 = st.columns([3, 1])
                     with device_col1:
-                        st.subheader(f"🔌 {device_config['name']}")
+                        icon = "🌡️" if device_type == "dht" else "🔌"
+                        st.subheader(f"{icon} {device_config['name']}")
                     with device_col2:
                         if not device_config['enabled']:
                             st.markdown("**`Placeholder`**")
 
                     if device_config['enabled']:
                         try:
-                            # Fetch status
-                            status = shelly_get_status(device_config['ip'], timeout=api_timeout)
+                            # Handle DHT sensors
+                            if device_type == "dht":
+                                sensor_data = dht_get_data(device_config['ip'], timeout=api_timeout)
 
-                            if status['success']:
-                                # Update session state
-                                st.session_state.device_states[device_key] = {
-                                    "on": status['on'],
-                                    "power": status['power'],
-                                    "energy": status['energy']
-                                }
+                                if sensor_data['success']:
+                                    # Store data in history
+                                    store_sensor_data(
+                                        device_key,
+                                        sensor_data['temperature'],
+                                        sensor_data['humidity'],
+                                        sensor_data['timestamp']
+                                    )
 
-                                # Display status
-                                state_text = "ON" if status['on'] else "OFF"
-                                state_class = "status-on" if status['on'] else "status-off"
-                                st.markdown(f"Status: <span class='{state_class}'>{state_text}</span>",
-                                          unsafe_allow_html=True)
+                                    # Display metrics
+                                    metric_col1, metric_col2 = st.columns(2)
+                                    with metric_col1:
+                                        st.metric("Temperature", f"{sensor_data['temperature']:.1f} °C")
+                                    with metric_col2:
+                                        st.metric("Humidity", f"{sensor_data['humidity']:.1f} %")
 
-                                # Metrics
-                                metric_col1, metric_col2 = st.columns(2)
-                                with metric_col1:
-                                    st.metric("Power", f"{status['power']:.1f} W")
-                                with metric_col2:
-                                    st.metric("Energy", f"{status['energy']:.2f} kWh")
+                                    # Display charts
+                                    temp_chart = create_sensor_chart(device_key, "temperature")
+                                    if temp_chart:
+                                        st.plotly_chart(temp_chart, use_container_width=True)
 
-                                if status.get('temperature'):
-                                    st.metric("Temperature", f"{status['temperature']:.1f} °C")
+                                    humidity_chart = create_sensor_chart(device_key, "humidity")
+                                    if humidity_chart:
+                                        st.plotly_chart(humidity_chart, use_container_width=True)
+                                else:
+                                    st.error(f"Connection Error: {sensor_data['error']}")
+                                    st.info(f"IP: {device_config['ip']}")
 
-                                # Control buttons
-                                btn_col1, btn_col2 = st.columns(2)
-                                with btn_col1:
-                                    if st.button("Turn ON", key=f"on_{device_key}",
-                                               disabled=status['on'], use_container_width=True):
-                                        try:
-                                            result = shelly_toggle(device_config['ip'], True, timeout=api_timeout)
-                                            if result['success']:
-                                                st.success("Turned ON")
-                                                time.sleep(0.5)
-                                                st.rerun()
-                                            else:
-                                                st.error(f"Error: {result['error']}")
-                                        except Exception as e:
-                                            st.error(f"Failed to turn on: {str(e)}")
+                            # Handle Shelly plugs
+                            elif device_type == "shelly":
+                                status = shelly_get_status(device_config['ip'], timeout=api_timeout)
 
-                                with btn_col2:
-                                    if st.button("Turn OFF", key=f"off_{device_key}",
-                                               disabled=not status['on'], use_container_width=True):
-                                        try:
-                                            result = shelly_toggle(device_config['ip'], False, timeout=api_timeout)
-                                            if result['success']:
-                                                st.success("Turned OFF")
-                                                time.sleep(0.5)
-                                                st.rerun()
-                                            else:
-                                                st.error(f"Error: {result['error']}")
-                                        except Exception as e:
-                                            st.error(f"Failed to turn off: {str(e)}")
-                            else:
-                                st.error(f"Connection Error: {status['error']}")
-                                st.info(f"IP: {device_config['ip']}")
+                                if status['success']:
+                                    # Update session state
+                                    st.session_state.device_states[device_key] = {
+                                        "on": status['on'],
+                                        "power": status['power'],
+                                        "energy": status['energy']
+                                    }
+
+                                    # Display status
+                                    state_text = "ON" if status['on'] else "OFF"
+                                    state_class = "status-on" if status['on'] else "status-off"
+                                    st.markdown(f"Status: <span class='{state_class}'>{state_text}</span>",
+                                              unsafe_allow_html=True)
+
+                                    # Metrics
+                                    metric_col1, metric_col2 = st.columns(2)
+                                    with metric_col1:
+                                        st.metric("Power", f"{status['power']:.1f} W")
+                                    with metric_col2:
+                                        st.metric("Energy", f"{status['energy']:.2f} kWh")
+
+                                    if status.get('temperature'):
+                                        st.metric("Temperature", f"{status['temperature']:.1f} °C")
+
+                                    # Control buttons
+                                    btn_col1, btn_col2 = st.columns(2)
+                                    with btn_col1:
+                                        if st.button("Turn ON", key=f"on_{device_key}",
+                                                   disabled=status['on'], use_container_width=True):
+                                            try:
+                                                result = shelly_toggle(device_config['ip'], True, timeout=api_timeout)
+                                                if result['success']:
+                                                    st.success("Turned ON")
+                                                    time.sleep(0.5)
+                                                    st.rerun()
+                                                else:
+                                                    st.error(f"Error: {result['error']}")
+                                            except Exception as e:
+                                                st.error(f"Failed to turn on: {str(e)}")
+
+                                    with btn_col2:
+                                        if st.button("Turn OFF", key=f"off_{device_key}",
+                                                   disabled=not status['on'], use_container_width=True):
+                                            try:
+                                                result = shelly_toggle(device_config['ip'], False, timeout=api_timeout)
+                                                if result['success']:
+                                                    st.success("Turned OFF")
+                                                    time.sleep(0.5)
+                                                    st.rerun()
+                                                else:
+                                                    st.error(f"Error: {result['error']}")
+                                            except Exception as e:
+                                                st.error(f"Failed to turn off: {str(e)}")
+                                else:
+                                    st.error(f"Connection Error: {status['error']}")
+                                    st.info(f"IP: {device_config['ip']}")
                         except Exception as e:
                             st.error(f"Unexpected error: {str(e)}")
                             st.info(f"IP: {device_config['ip']}")
@@ -333,6 +471,7 @@ with tab1:
                         **Configuration Needed**
 
                         IP Address: `{device_config['ip']}`
+                        Type: `{device_type}`
 
                         Enable this device in the Settings tab.
                         """)
@@ -344,12 +483,14 @@ with tab1:
 # ============================================================================
 with tab2:
     st.header("API Endpoint Configuration")
-    st.write("Configure your Shelly devices below. Changes are saved in session state.")
+    st.write("Configure your devices below. Changes are saved in session state.")
 
     st.divider()
 
     for device_key, device_config in st.session_state.devices_config.items():
-        with st.expander(f"🔌 {device_key} - {device_config['name']}", expanded=False):
+        device_type = device_config.get('type', 'shelly')
+        icon = "🌡️" if device_type == "dht" else "🔌"
+        with st.expander(f"{icon} {device_key} - {device_config['name']}", expanded=False):
             col1, col2 = st.columns(2)
 
             with col1:
@@ -363,7 +504,15 @@ with tab2:
                     "IP Address",
                     value=device_config['ip'],
                     key=f"ip_{device_key}",
-                    help="Enter the IP address of your Shelly device (e.g., 192.168.1.100)"
+                    help="Enter the IP address of your device"
+                )
+
+                new_type = st.selectbox(
+                    "Device Type",
+                    options=["shelly", "dht"],
+                    index=0 if device_type == "shelly" else 1,
+                    key=f"type_{device_key}",
+                    help="Select the device type"
                 )
 
             with col2:
@@ -379,11 +528,18 @@ with tab2:
                 if st.button("Test Connection", key=f"test_{device_key}", use_container_width=True):
                     with st.spinner("Testing connection..."):
                         try:
-                            test_result = shelly_get_status(new_ip, timeout=3)
-                            if test_result['success']:
-                                st.success(f"Connected successfully! Device is {'ON' if test_result['on'] else 'OFF'}")
-                            else:
-                                st.error(f"Connection failed: {test_result['error']}")
+                            if new_type == "shelly":
+                                test_result = shelly_get_status(new_ip, timeout=3)
+                                if test_result['success']:
+                                    st.success(f"Connected successfully! Device is {'ON' if test_result['on'] else 'OFF'}")
+                                else:
+                                    st.error(f"Connection failed: {test_result['error']}")
+                            elif new_type == "dht":
+                                test_result = dht_get_data(new_ip, timeout=3)
+                                if test_result['success']:
+                                    st.success(f"Connected successfully! Temp: {test_result['temperature']:.1f}°C, Humidity: {test_result['humidity']:.1f}%")
+                                else:
+                                    st.error(f"Connection failed: {test_result['error']}")
                         except Exception as e:
                             st.error(f"Connection test failed: {str(e)}")
 
@@ -391,6 +547,7 @@ with tab2:
                 st.session_state.devices_config[device_key] = {
                     'name': new_name,
                     'ip': new_ip,
+                    'type': new_type,
                     'enabled': new_enabled
                 }
                 st.success(f"Settings saved for {device_key}")
@@ -431,4 +588,4 @@ else:
 
 # Footer
 st.divider()
-st.caption("Smart Home Dashboard v1.0 | Shelly Pro Plug Controller")
+st.caption("Smart Home Dashboard v1.0 | Shelly Plug & DHT Sensor Monitor")
