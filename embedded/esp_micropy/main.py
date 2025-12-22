@@ -79,13 +79,25 @@ def http_response(body, status="200 OK", content_type="application/json"):
 
 def handle_client(cl):
     try:
-        # Set socket timeout to prevent hanging
-        cl.settimeout(2.0)
+        # Set socket timeout - increased to 5 seconds
+        cl.settimeout(5.0)
 
-        req = cl.recv(1024) or b""
+        # Receive request with timeout handling
+        try:
+            req = cl.recv(1024)
+        except OSError as e:
+            print(f"Recv timeout/error: {e}")
+            return
+
+        if not req:
+            print("Empty request received")
+            return
+
         req_line = req.split(b"\r\n", 1)[0].decode("utf-8", "ignore")
         parts = req_line.split()
         path = parts[1] if len(parts) >= 2 else "/"
+
+        print(f"Request: {path}")
 
         if path == "/" or path.startswith("/health"):
             body = json.dumps({"ok": True, "uptime_ms": time.ticks_ms()})
@@ -111,8 +123,10 @@ def handle_client(cl):
 
         cl.sendall(http_response(json.dumps({"ok": False, "error": "not found"}), status="404 Not Found"))
 
+    except OSError as e:
+        print(f"Socket error: {e}")
     except Exception as e:
-        print("Error handling client:", e)
+        print(f"Error handling client: {e}")
     finally:
         try:
             cl.close()
