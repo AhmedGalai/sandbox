@@ -128,10 +128,16 @@ def dht_get_data(ip: str, timeout: int = 3):
         response = requests.get(url, timeout=timeout)
         response.raise_for_status()
         data = response.json()
+
+        # Check if response is ok
+        if not data.get("ok", False):
+            return {"success": False, "error": data.get("error", "Unknown error from sensor")}
+
+        # ESP sends temperature_c and humidity_percent
         return {
             "success": True,
-            "temperature": data.get("temperature", 0.0),
-            "humidity": data.get("humidity", 0.0),
+            "temperature": data.get("temperature_c", 0.0),
+            "humidity": data.get("humidity_percent", 0.0),
             "timestamp": datetime.now()
         }
     except requests.exceptions.Timeout:
