@@ -8,11 +8,11 @@ from machine import Pin
 import dht
 
 # ====== CONFIG ======
-# WIFI_SSID = "iPhone"
-# WIFI_PASS = "KhalilEsp32"
+# WIFI_SSID = "---"
+# WIFI_PASS = "---"
 
-WIFI_SSID = "FRITZ!Box 7530 PQ"
-WIFI_PASS = "41120895611457227941"
+WIFI_SSID = "---"
+WIFI_PASS = "---"
 
 
 DHT_PIN = 14          # <-- put your GPIO number here (e.g. 13)
