@@ -32,7 +32,7 @@ def record_audio(filename, samplerate=44100, channels=1):
         # Concatenate all recorded blocks
         print("Recording stopped. Processing audio...")
         if q:
-            recorded_.audio = np.concatenate(q, axis=0)
+            recorded_audio = np.concatenate(q, axis=0)
             sf.write(filename, recorded_audio, samplerate)
             print(f"Audio saved to {filename}")
         else:
@@ -54,5 +54,5 @@ def play_audio(filename):
 
 if __name__ == "__main__":
     output_filename = "output.wav"
-    #record_audio(output_filename)
-    #play_audio(output_filename)
+    record_audio(output_filename)
+    play_audio(output_filename)
