@@ -1,0 +1,165 @@
+#:kivy 2.3
+#
+# Kivy UI Layout File for Permissions & Sensors Demo
+# Defines the complete user interface structure using Kivy language
+#
+
+#:import Factory kivy.factory.Factory
+
+<ScrollView>:
+    canvas.before:
+        Color:
+            rgba: 0.1, 0.1, 0.1, 1
+        Rectangle:
+            size: self.size
+            pos: self.pos
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_y: None
+        height: self.minimum_height
+        padding: 16
+        spacing: 12
+
+        # Title Section
+        canvas.before:
+            Color:
+                rgba: 0.15, 0.15, 0.15, 1
+            Rectangle:
+                size: self.size
+                pos: self.pos
+
+        Label:
+            text: 'Permissions & Sensors Demo'
+            font_size: '24sp'
+            bold: True
+            color: 0.2, 0.8, 1, 1
+            size_hint_y: None
+            height: 60
+            canvas.before:
+                Color:
+                    rgba: 0.05, 0.05, 0.1, 1
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+
+        # Permissions Section
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: 12
+            padding: 12
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.12, 0.12, 1
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+                Color:
+                    rgba: 0.3, 0.5, 0.3, 0.3
+                Line:
+                    rectangle: self.x, self.y, self.width, self.height
+                    width: 1
+
+            Label:
+                text: 'Permissions'
+                font_size: '18sp'
+                bold: True
+                color: 0.4, 0.9, 0.4, 1
+                size_hint_y: None
+                height: 40
+
+            Button:
+                text: 'Request All Permissions'
+                size_hint_y: None
+                height: 48
+                background_color: 0.2, 0.6, 0.2, 1
+                on_press: app.root.request_all_permissions()
+
+            GridLayout:
+                cols: 2
+                spacing: 8
+                size_hint_y: None
+                height: self.minimum_height
+
+        # Sensors Section
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: self.minimum_height
+            spacing: 12
+            padding: 12
+            canvas.before:
+                Color:
+                    rgba: 0.12, 0.12, 0.12, 1
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+                Color:
+                    rgba: 0.3, 0.3, 0.5, 0.3
+                Line:
+                    rectangle: self.x, self.y, self.width, self.height
+                    width: 1
+
+            Label:
+                text: 'Sensors'
+                font_size: '18sp'
+                bold: True
+                color: 0.4, 0.6, 0.9, 1
+                size_hint_y: None
+                height: 40
+
+            BoxLayout:
+                orientation: 'horizontal'
+                size_hint_y: None
+                height: 48
+                spacing: 8
+
+                Button:
+                    text: 'Enable All Sensors'
+                    background_color: 0.2, 0.5, 0.8, 1
+                    on_press: app.root.enable_all_sensors()
+
+                Button:
+                    text: 'Disable All Sensors'
+                    background_color: 0.8, 0.3, 0.2, 1
+                    on_press: app.root.disable_all_sensors()
+
+            BoxLayout:
+                orientation: 'vertical'
+                size_hint_y: None
+                height: self.minimum_height
+                spacing: 8
+
+        # Status Bar
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: 50
+            padding: 8
+            spacing: 8
+            canvas.before:
+                Color:
+                    rgba: 0.05, 0.05, 0.05, 1
+                Rectangle:
+                    size: self.size
+                    pos: self.pos
+                Color:
+                    rgba: 0.5, 0.5, 0.5, 0.5
+                Line:
+                    rectangle: self.x, self.y, self.width, self.height
+                    width: 1
+
+            Label:
+                text: 'Status:'
+                font_size: '12sp'
+                bold: True
+                color: 0.7, 0.7, 0.7, 1
+                size_hint_x: 0.2
+
+            Label:
+                id: status_label
+                text: 'Ready'
+                font_size: '12sp'
+                color: 0.2, 0.8, 0.2, 1

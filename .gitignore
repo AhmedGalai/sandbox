@@ -1,0 +1,98 @@
+########################################
+# Python
+########################################
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.virtualenv/
+
+# Packaging / build artifacts
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+*.whl
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+
+# Type checking / linting caches
+.mypy_cache/
+.pyre/
+.pytype/
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Environment / secrets (optional; keep if you use dotenv)
+.env
+.env.*
+
+# Logs
+*.log
+
+########################################
+# CMake
+########################################
+# Out-of-source build dirs (common names)
+build*/
+cmake-build*/
+out/
+bin/
+lib/
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+install_manifest.txt
+CTestTestfile.cmake
+Testing/
+DartConfiguration.tcl
+Makefile
+compile_commands.json
+
+# IDE-specific CMake stuff
+CMakeUserPresets.json
+CMakePresets.json
+
+########################################
+# Editors / OS
+########################################
+# VS Code
+.vscode/
+
+# JetBrains
+.idea/
+*.iml
+
+# macOS / Windows
+.DS_Store
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+########################################
+# Misc
+########################################
+*.swp
+*.swo
+*.tmp
